@@ -131,13 +131,69 @@ Animator.prototype.finish = function finish (){
     this._animatedValues = {};
 };
 
+function saveBasic(sprite){
+    var data = {};
+    ['x', 'y', 'scaleX', 'scaleY', 'rotation', 'bitmapName', 'width', 'height'].forEach(function (key){
+        data[key] = sprite[key];
+    });
+
+    return data;
+}
+
+function defineHelperProperties(klass){
+    Object.defineProperties(klass.prototype, {
+        scaleX: {
+            get: function get(){
+                return this.scale.x;
+            },
+            set: function set(value){
+                this.scale.x = value;
+            }
+        },
+        scaleY: {
+            get: function get(){
+                return this.scale.y;
+            },
+            set: function set(value){
+                this.scale.y = value;
+            }
+        }
+    });
+
+}
+
 var BaseWindow = (function (Window_Base) {
-    function BaseWindow(){
+    function BaseWindow(data){
+        var this$1 = this;
+
         Window_Base.call(this);
 
         this._widgets = {};
         this._renderingOrder = [];
-        this._widgetAnimators = [];
+
+        if(data){
+            delete data.type;
+
+            Object.keys(data).forEach(function (key){
+                switch(key){
+                    case 'widgets':
+                        this$1._renderingOrder = data.widgets.map(function (widget){
+                            if(widget.bitmapName){
+                                widget.bitmap = ImageManager.loadPicture(widget.bitmapName);
+                            }
+                            return widget;
+                        });
+                        this$1._renderingOrder
+                            .forEach(function (widget){ return (this$1._widgets[widget.id] = widget); });
+                        break;
+
+                    default:
+                        this$1[key] = data[key];
+                }
+            });
+
+            this.markDirty();
+        }
     }
 
     if ( Window_Base ) BaseWindow.__proto__ = Window_Base;
@@ -149,6 +205,19 @@ var BaseWindow = (function (Window_Base) {
             this._animator = new Animator(this);
         }
         this._animator.animate(fields);
+    };
+
+    BaseWindow.prototype.save = function save (){
+        var data = saveBasic(this);
+        data.type = 'BaseWindow';
+
+        data.widgets = this._renderingOrder
+            .map(function (widget){
+                delete widget.bitmap;
+                return widget;
+            });
+
+        return data;
     };
 
     BaseWindow.prototype.animateWidget = function animateWidget (id, fields){
@@ -165,7 +234,8 @@ var BaseWindow = (function (Window_Base) {
         if(this._animator){ this._animator.finish(); }
     };
 
-    BaseWindow.prototype.addWidget = function addWidget (id, widget){
+    BaseWindow.prototype.addWidget = function addWidget (widget){
+        var id = widget.id;
         this._renderingOrder.push(widget);
         this._widgets[id] = widget;
         this.markDirty();
@@ -211,6 +281,9 @@ var BaseWindow = (function (Window_Base) {
         this._dirty = false;
         this._clearWidgetsDirtyFlag();
 
+        if(this.contents.width !== this.width || this.contents.height !== this.height){
+            this.contents = new Bitmap(this.width, this.height);
+        }
         this.contents.clear();
         this._renderingOrder.forEach(function (widget){ return this$1['draw'+widget.type](widget); });
     };
@@ -229,9 +302,20 @@ var BaseWindow = (function (Window_Base) {
     return BaseWindow;
 }(Window_Base));
 
+defineHelperProperties(BaseWindow);
+
 var BaseSprite = (function (Sprite) {
-    function BaseSprite () {
-        Sprite.apply(this, arguments);
+    function BaseSprite(data){
+        var this$1 = this;
+
+        Sprite.call(this);
+        if(data){
+            Object.keys(data).forEach(function (key){ return this$1[key] = data[key]; });
+
+            if(data.bitmapName){
+                this.bitmap = ImageManager.loadPicture(data.bitmapName);
+            }
+        }
     }
 
     if ( Sprite ) BaseSprite.__proto__ = Sprite;
@@ -243,6 +327,13 @@ var BaseSprite = (function (Sprite) {
             this._animator = new Animator(this);
         }
         this._animator.animate(fields);
+    };
+
+    BaseSprite.prototype.save = function save (){
+        var data = saveBasic(this);
+        data.type = 'BaseSprite';
+
+        return data;
     };
 
     BaseSprite.prototype.finishAnimation = function finishAnimation (){
@@ -258,6 +349,8 @@ var BaseSprite = (function (Sprite) {
     return BaseSprite;
 }(Sprite));
 
+defineHelperProperties(BaseSprite);
+
 var WindowBuilder = function WindowBuilder() {
     this._stage = new BaseSprite();
     this._sprites = {stage: this._stage};
@@ -265,6 +358,10 @@ var WindowBuilder = function WindowBuilder() {
 
 WindowBuilder.prototype.getStage = function getStage (){
     return this._stage;
+};
+
+WindowBuilder.prototype.clear = function clear (){
+    this.close('stage');
 };
 
 WindowBuilder.prototype.close = function close (id){
@@ -353,7 +450,8 @@ WindowBuilder.prototype.window = function window (id, parent, params){
     var p = this._parseParams(window, params);
     this._applyBasicParams(window, p);
     window.setBackgroundType(p.background || 0);
-    window.contents = new Bitmap(p.width, p.height);
+    window._liply_id = id;
+    window._liply_parentId = parent;
 
     this._sprites[id] = window;
     this._sprites[parent].addChild(window);
@@ -371,7 +469,10 @@ WindowBuilder.prototype.sprite = function sprite (id, parent, name, params){
 
     var p = this._parseParams(null, params);
     this._applyBasicParams(sprite, p);
-    sprite.bitmap = ImageManager.loadPicture(name);
+    if(name) { sprite.bitmap = ImageManager.loadPicture(name); }
+    sprite.bitmapName = name;
+    sprite._liply_id = id;
+    sprite._liply_parentId = parent;
 
     this._sprites[id] = sprite;
     this._sprites[parent].addChild(sprite);
@@ -388,6 +489,7 @@ WindowBuilder.prototype.picture = function picture (id, parent, name, params){
     this._upsertWidget(id, parent, params, function (picture){
         picture.type = 'Picture';
         picture.bitmap = ImageManager.loadPicture(name);
+        picture.bitmapName = name;
     });
 };
 
@@ -402,9 +504,10 @@ WindowBuilder.prototype._upsertWidget = function _upsertWidget (id, parent, para
         modifier(widget);
     }else{
         var widget$1 = this._parseParams(parentWindow, params);
+        widget$1.id = id;
         modifier(widget$1);
 
-        parentWindow.addWidget(id, widget$1);
+        parentWindow.addWidget(widget$1);
     }
 };
 
@@ -414,6 +517,9 @@ WindowBuilder.prototype._applyBasicParams = function _applyBasicParams (w, p){
 
     w.width = p.width || w.width;
     w.height = p.height || w.height;
+
+    w.scaleX = p.scaleX || w.scaleX;
+    w.scaleY = p.scaleY || w.scaleY;
 
     if(p.visible !== undefined)
         { w.visible = p.visible; }
@@ -444,62 +550,142 @@ WindowBuilder.prototype._convertUnit = function _convertUnit (window, value){
 };
 
 WindowBuilder.prototype.save = function save (){
+        var this$1 = this;
+
+    Object.keys(this._sprites).forEach(function (key){
+        this$1._sprites[key].finishAnimation();
+    });
+
+    var data = {};
+    data.sprites = {};
+    Object.keys(this._sprites).forEach(function (key){
+        if(key !== 'stage'){
+            data.sprites[key] = this$1._sprites[key].save();
+            data.sprites[key]._liply_id = this$1._sprites[key]._liply_id;
+            data.sprites[key]._liply_parentId = this$1._sprites[key]._liply_parentId;
+        }
+    });
+
+    return data;
 };
 
-WindowBuilder.prototype.load = function load (){
+WindowBuilder.prototype.load = function load (data){
+        var this$1 = this;
+
+    this.clear();
+
+    Object.keys(data.sprites).forEach(function (key){
+        switch(data.sprites[key].type){
+            case 'BaseWindow':
+                this$1._sprites[key] = new BaseWindow(data.sprites[key]);
+                break;
+
+            case 'BaseSprite':
+                this$1._sprites[key] = new BaseSprite(data.sprites[key]);
+                break;
+        }
+        this$1._sprites[key]._liply_id = data.sprites[key]._liply_id;
+        this$1._sprites[key]._liply_parentId = data.sprites[key]._liply_parentId;
+    });
+
+    Object.keys(this._sprites).forEach(function (key){
+        var sprite = this$1._sprites[key];
+        if(sprite._liply_parentId){
+            this$1._sprites[sprite._liply_parentId].addChild(sprite);
+        }
+    });
 };
 
-var builder = new WindowBuilder();
+function getCurrentBuilder(){
+    return SceneManager._scene._liply_windowBuilder;
+}
 
 registerPluginCommands({
     window: function window(id, parent){
         var params = [], len = arguments.length - 2;
         while ( len-- > 0 ) params[ len ] = arguments[ len + 2 ];
 
-        builder.window(id, parent, params);
+        getCurrentBuilder().window(id, parent, params);
     },
 
     label: function label(id, parent, text){
         var params = [], len = arguments.length - 3;
         while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
 
-        builder.label(id, parent, text, params);
+        getCurrentBuilder().label(id, parent, text, params);
     },
 
     picture: function picture(id, parent, name){
         var params = [], len = arguments.length - 3;
         while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
 
-        builder.picture(id, parent, name, params);
+        getCurrentBuilder().picture(id, parent, name, params);
     },
 
-    closeWindow: function closeWindow(id){
-        builder.close(id);
+    sprite: function sprite(id, parent, name){
+        var params = [], len = arguments.length - 3;
+        while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
+
+        getCurrentBuilder().sprite(id, parent, name, params);
+    },
+
+    close: function close(id){
+        getCurrentBuilder().close(id);
+    },
+
+    container: function container(id, parent){
+        var params = [], len = arguments.length - 2;
+        while ( len-- > 0 ) params[ len ] = arguments[ len + 2 ];
+
+        getCurrentBuilder().sprite(id, parent, null, params);
     },
 
     animate: function animate(id){
         var params = [], len = arguments.length - 1;
         while ( len-- > 0 ) params[ len ] = arguments[ len + 1 ];
 
-        builder.animate(id, params);
+        getCurrentBuilder().animate(id, params);
     }
 });
 
 
-wrapPrototype(Scene_Map, 'terminate', function (old){ return function(){
+wrapPrototype(Scene_Map, 'create', function (old){ return function(){
+    this._liply_windowBuilder = new WindowBuilder();
+
+    if($gameSystem._liply_windowBuilder){
+        this._liply_windowBuilder.load($gameSystem._liply_windowBuilder);
+    }
+
     old.call(this);
-    this.removeChild(builder.getStage());
 }; });
 
+wrapPrototype(Scene_Map, 'terminate', function (old){ return function(){
+    $gameSystem._liply_windowBuilder = this._liply_windowBuilder.save();
+    old.call(this);
+}; });
 
 wrapPrototype(Scene_Map, 'update', function (old){ return function(){
-    builder.update();
+    this._liply_windowBuilder.update();
     old.call(this);
 }; });
 
 wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function(){
     old.call(this);
-    this.addChild(builder.getStage());
+    this.addChild(this._liply_windowBuilder.getStage());
 }; });
+
+//
+// wrapStatic(DataManager, 'saveGame', old=>function(){
+//     let currentBuilder = getCurrentBuilder();
+//     if(currentBuilder){
+//         $gameSystem._liply_windowBuilder = currentBuilder.save();
+//     }
+//
+//     let result = old.apply(this, arguments);
+//
+//     $gameSystem._liply_windowBuilder = null;
+//
+//     return result;
+// });
 
 }());

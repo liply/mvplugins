@@ -26,3 +26,17 @@ export function wrapPrototype(klass, method, fn){
 
     klass.prototype[method] = newMethod;
 }
+
+export function wrapStatic(klass, method, fn){
+    const oldMethod = klass[method];
+    const newMethod = fn(oldMethod);
+
+    klass[method] = newMethod;
+}
+
+export function cloneObject(obj){
+    let result = {};
+    Object.keys(obj).forEach(key=>(result[key] = obj[key]));
+
+    return result;
+}

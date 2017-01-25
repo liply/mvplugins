@@ -1,11 +1,30 @@
 import Animator from './Animator.js'
+import {saveBasic, defineHelperProperties} from './SpriteUtil.js'
 
 export default class BaseSprite extends Sprite{
+    constructor(data){
+        super();
+        if(data){
+            Object.keys(data).forEach(key=>this[key] = data[key]);
+
+            if(data.bitmapName){
+                this.bitmap = ImageManager.loadPicture(data.bitmapName);
+            }
+        }
+    }
+
     animate(fields){
         if(!this._animator){
             this._animator = new Animator(this);
         }
         this._animator.animate(fields);
+    }
+
+    save(){
+        let data = saveBasic(this);
+        data.type = 'BaseSprite';
+
+        return data;
     }
 
     finishAnimation(){
@@ -18,3 +37,5 @@ export default class BaseSprite extends Sprite{
         super.update();
     }
 }
+
+defineHelperProperties(BaseSprite);

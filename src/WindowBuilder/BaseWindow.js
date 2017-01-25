@@ -1,12 +1,36 @@
 import Animator from './Animator.js'
+import {saveBasic, defineHelperProperties} from './SpriteUtil.js'
 
 export default class BaseWindow extends Window_Base{
-    constructor(){
+    constructor(data){
         super();
 
         this._widgets = {};
         this._renderingOrder = [];
-        this._widgetAnimators = [];
+
+        if(data){
+            delete data.type;
+
+            Object.keys(data).forEach(key=>{
+                switch(key){
+                    case 'widgets':
+                        this._renderingOrder = data.widgets.map(widget=>{
+                            if(widget.bitmapName){
+                                widget.bitmap = ImageManager.loadPicture(widget.bitmapName);
+                            }
+                            return widget;
+                        });
+                        this._renderingOrder
+                            .forEach(widget=>(this._widgets[widget.id] = widget));
+                        break;
+
+                    default:
+                        this[key] = data[key];
+                }
+            });
+
+            this.markDirty();
+        }
     }
 
     animate(fields){
@@ -14,6 +38,19 @@ export default class BaseWindow extends Window_Base{
             this._animator = new Animator(this);
         }
         this._animator.animate(fields);
+    }
+
+    save(){
+        let data = saveBasic(this);
+        data.type = 'BaseWindow';
+
+        data.widgets = this._renderingOrder
+            .map(widget=>{
+                delete widget.bitmap;
+                return widget;
+            });
+
+        return data;
     }
 
     animateWidget(id, fields){
@@ -30,7 +67,8 @@ export default class BaseWindow extends Window_Base{
         if(this._animator)this._animator.finish();
     }
 
-    addWidget(id, widget){
+    addWidget(widget){
+        let id = widget.id;
         this._renderingOrder.push(widget);
         this._widgets[id] = widget;
         this.markDirty();
@@ -74,6 +112,9 @@ export default class BaseWindow extends Window_Base{
         this._dirty = false;
         this._clearWidgetsDirtyFlag();
 
+        if(this.contents.width !== this.width || this.contents.height !== this.height){
+            this.contents = new Bitmap(this.width, this.height);
+        }
         this.contents.clear();
         this._renderingOrder.forEach((widget)=>this['draw'+widget.type](widget));
     }
@@ -89,3 +130,5 @@ export default class BaseWindow extends Window_Base{
             picture.x, picture.y);
     }
 }
+
+defineHelperProperties(BaseWindow);

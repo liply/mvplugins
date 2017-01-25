@@ -13,6 +13,10 @@ export default class WindowBuilder{
         return this._stage;
     }
 
+    clear(){
+        this.close('stage');
+    }
+
     close(id){
         if(id === 'stage'){
             const children = this._stage.children.slice(0);
@@ -89,7 +93,8 @@ export default class WindowBuilder{
         let p = this._parseParams(window, params);
         this._applyBasicParams(window, p);
         window.setBackgroundType(p.background || 0);
-        window.contents = new Bitmap(p.width, p.height);
+        window._liply_id = id;
+        window._liply_parentId = parent;
 
         this._sprites[id] = window;
         this._sprites[parent].addChild(window);
@@ -107,7 +112,10 @@ export default class WindowBuilder{
 
         let p = this._parseParams(null, params);
         this._applyBasicParams(sprite, p);
-        sprite.bitmap = ImageManager.loadPicture(name);
+        if(name) sprite.bitmap = ImageManager.loadPicture(name);
+        sprite.bitmapName = name;
+        sprite._liply_id = id;
+        sprite._liply_parentId = parent;
 
         this._sprites[id] = sprite;
         this._sprites[parent].addChild(sprite);
@@ -124,6 +132,7 @@ export default class WindowBuilder{
         this._upsertWidget(id, parent, params, (picture)=>{
             picture.type = 'Picture';
             picture.bitmap = ImageManager.loadPicture(name);
+            picture.bitmapName = name;
         });
     }
 
@@ -138,9 +147,10 @@ export default class WindowBuilder{
             modifier(widget);
         }else{
             let widget = this._parseParams(parentWindow, params);
+            widget.id = id;
             modifier(widget);
 
-            parentWindow.addWidget(id, widget);
+            parentWindow.addWidget(widget);
         }
     }
 
@@ -150,6 +160,9 @@ export default class WindowBuilder{
 
         w.width = p.width || w.width;
         w.height = p.height || w.height;
+
+        w.scaleX = p.scaleX || w.scaleX;
+        w.scaleY = p.scaleY || w.scaleY;
 
         if(p.visible !== undefined)
             w.visible = p.visible;
@@ -178,8 +191,45 @@ export default class WindowBuilder{
     }
 
     save(){
+        Object.keys(this._sprites).forEach(key=>{
+            this._sprites[key].finishAnimation();
+        });
+
+        let data = {};
+        data.sprites = {};
+        Object.keys(this._sprites).forEach(key=>{
+            if(key !== 'stage'){
+                data.sprites[key] = this._sprites[key].save();
+                data.sprites[key]._liply_id = this._sprites[key]._liply_id;
+                data.sprites[key]._liply_parentId = this._sprites[key]._liply_parentId;
+            }
+        });
+
+        return data;
     }
 
-    load(){
+    load(data){
+        this.clear();
+
+        Object.keys(data.sprites).forEach(key=>{
+            switch(data.sprites[key].type){
+                case 'BaseWindow':
+                    this._sprites[key] = new BaseWindow(data.sprites[key]);
+                    break;
+
+                case 'BaseSprite':
+                    this._sprites[key] = new BaseSprite(data.sprites[key]);
+                    break;
+            }
+            this._sprites[key]._liply_id = data.sprites[key]._liply_id;
+            this._sprites[key]._liply_parentId = data.sprites[key]._liply_parentId;
+        });
+
+        Object.keys(this._sprites).forEach(key=>{
+            let sprite = this._sprites[key];
+            if(sprite._liply_parentId){
+                this._sprites[sprite._liply_parentId].addChild(sprite);
+            }
+        });
     }
 }
