@@ -1,0 +1,29 @@
+{
+  "name": "liply-open-plugins",
+  "version": "1.0.0",
+  "description": "my plugins",
+  "main": "index.js",
+  "scripts": {
+    "compile:picture": "rollup -c rollup.picture.js",
+    "compile:builder": "rollup -c rollup.builder.js",
+    "compile": "run-p compile:*",
+    "copy": "cp-cli ./dist/ ./game/js/plugins/",
+    "test": "run-s compile copy"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/liply/mvplugins.git"
+  },
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/liply/mvplugins/issues"
+  },
+  "homepage": "https://github.com/liply/mvplugins#readme",
+  "devDependencies": {
+    "cp-cli": "^1.0.2",
+    "npm-run-all": "^4.0.1",
+    "rollup": "^0.41.4",
+    "rollup-plugin-buble": "^0.15.0"
+  }
+}
