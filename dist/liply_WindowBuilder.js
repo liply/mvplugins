@@ -37,6 +37,100 @@ function wrapPrototype(klass, method, fn){
     klass.prototype[method] = newMethod;
 }
 
+
+
+/*
+ object-assign
+ (c) Sindre Sorhus
+ @license MIT
+ */
+
+/* eslint-disable no-unused-vars */
+var getOwnPropertySymbols = Object.getOwnPropertySymbols;
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+var propIsEnumerable = Object.prototype.propertyIsEnumerable;
+
+function toObject(val) {
+    if (val === null || val === undefined) {
+        throw new TypeError('Object.assign cannot be called with null or undefined');
+    }
+
+    return Object(val);
+}
+
+function shouldUseNative() {
+    try {
+        if (!Object.assign) {
+            return false;
+        }
+
+        // Detect buggy property enumeration order in older V8 versions.
+
+        // https://bugs.chromium.org/p/v8/issues/detail?id=4118
+        var test1 = new String('abc');  // eslint-disable-line no-new-wrappers
+        test1[5] = 'de';
+        if (Object.getOwnPropertyNames(test1)[0] === '5') {
+            return false;
+        }
+
+        // https://bugs.chromium.org/p/v8/issues/detail?id=3056
+        var test2 = {};
+        for (var i = 0; i < 10; i++) {
+            test2['_' + String.fromCharCode(i)] = i;
+        }
+        var order2 = Object.getOwnPropertyNames(test2).map(function (n) {
+            return test2[n];
+        });
+        if (order2.join('') !== '0123456789') {
+            return false;
+        }
+
+        // https://bugs.chromium.org/p/v8/issues/detail?id=3056
+        var test3 = {};
+        'abcdefghijklmnopqrst'.split('').forEach(function (letter) {
+            test3[letter] = letter;
+        });
+        if (Object.keys(Object.assign({}, test3)).join('') !==
+            'abcdefghijklmnopqrst') {
+            return false;
+        }
+
+        return true;
+    } catch (err) {
+        // We don't expect any of the above to throw, but better to be safe.
+        return false;
+    }
+}
+
+Object.assign = shouldUseNative() ? Object.assign : function (target, source) {
+        var arguments$1 = arguments;
+
+        var from;
+        var to = toObject(target);
+        var symbols;
+
+        for (var s = 1; s < arguments.length; s++) {
+            from = Object(arguments$1[s]);
+
+            for (var key in from) {
+                if (hasOwnProperty.call(from, key)) {
+                    to[key] = from[key];
+                }
+            }
+
+            if (getOwnPropertySymbols) {
+                symbols = getOwnPropertySymbols(from);
+                for (var i = 0; i < symbols.length; i++) {
+                    if (propIsEnumerable.call(from, symbols[i])) {
+                        to[symbols[i]] = from[symbols[i]];
+                    }
+                }
+            }
+        }
+
+        return to;
+    };
+
 // inspired by react-motion
 // https://github.com/chenglou/react-motion
 
@@ -295,8 +389,12 @@ var BaseWindow = (function (Window_Base) {
     BaseWindow.prototype.drawPicture = function drawPicture (picture){
         this.contents.blt(picture.bitmap,
             0, 0,
-            picture.bitmap.width, picture.bitmap.height,
-            picture.x, picture.y);
+            picture.bitmap.width,
+            picture.bitmap.height,
+            picture.x, picture.y,
+            picture.bitmap.width * (picture.scaleX || 1),
+            picture.bitmap.height * (picture.scaleY || 1)
+        );
     };
 
     return BaseWindow;
@@ -351,8 +449,41 @@ var BaseSprite = (function (Sprite) {
 
 defineHelperProperties(BaseSprite);
 
+var LabelSprite = (function (BaseSprite$$1) {
+    function LabelSprite(data){
+        BaseSprite$$1.call(this, data);
+
+        if(data && data.text){
+            this.setText(data.text);
+        }
+    }
+
+    if ( BaseSprite$$1 ) LabelSprite.__proto__ = BaseSprite$$1;
+    LabelSprite.prototype = Object.create( BaseSprite$$1 && BaseSprite$$1.prototype );
+    LabelSprite.prototype.constructor = LabelSprite;
+
+    LabelSprite.prototype.setText = function setText (text) {
+        this._text = text;
+
+        var content = new Bitmap(this.width, this.height);
+        content.drawText(text, 0, 0, this.width, this.height, this.align);
+        this.bitmap = content;
+    };
+
+    LabelSprite.prototype.save = function save (){
+        var data = BaseSprite$$1.prototype.save.call(this);
+        data.text = this._text;
+        data.type = 'LabelSprite';
+
+        return data;
+    };
+
+    return LabelSprite;
+}(BaseSprite));
+
 var WindowBuilder = function WindowBuilder() {
     this._stage = new BaseSprite();
+    this._order = [];
     this._sprites = {stage: this._stage};
 };
 
@@ -379,6 +510,8 @@ WindowBuilder.prototype.close = function close (id){
             sprite.parent.removeChild(sprite);
             delete this._sprites[id];
         }
+
+        this._order.splice(this._order.indexOf(id), 1);
     }
 };
 
@@ -415,9 +548,12 @@ WindowBuilder.prototype.refresh = function refresh (){
         .forEach(function (key){ return this$1._sprites[key].refresh(); });
 };
 
+WindowBuilder.prototype._pushOrder = function _pushOrder (id){
+    if(this._order.indexOf(id) === -1){ this._order.push(id); }
+};
+
 WindowBuilder.prototype.animate = function animate (id, params){
         var this$1 = this;
-
 
     for(var key in this$1._sprites){
         if(this$1._sprites.hasOwnProperty(key)){
@@ -442,7 +578,6 @@ WindowBuilder.prototype.window = function window (id, parent, params){
     if(this._sprites[id]){
         window = this._sprites[id];
         window.finishAnimation();
-        window.parent.removeChild(window);
     }else{
         window = new BaseWindow();
     }
@@ -454,43 +589,65 @@ WindowBuilder.prototype.window = function window (id, parent, params){
     window._liply_parentId = parent;
 
     this._sprites[id] = window;
-    this._sprites[parent].addChild(window);
+    if(window.parent !== this._sprites[parent])
+        { this._sprites[parent].addChild(window); }
+    this._pushOrder(id);
 };
 
-WindowBuilder.prototype.sprite = function sprite (id, parent, name, params){
+WindowBuilder.prototype._upsertSprite = function _upsertSprite (id, parent, params, factory, modifier){
     var sprite;
     if(this._sprites[id]){
         sprite = this._sprites[id];
         sprite.finishAnimation();
-        sprite.parent.removeChild(sprite);
     }else{
-        sprite = new BaseSprite();
+        sprite = factory();
     }
 
     var p = this._parseParams(null, params);
     this._applyBasicParams(sprite, p);
-    if(name) { sprite.bitmap = ImageManager.loadPicture(name); }
-    sprite.bitmapName = name;
+
     sprite._liply_id = id;
     sprite._liply_parentId = parent;
 
+    modifier(sprite);
+
     this._sprites[id] = sprite;
-    this._sprites[parent].addChild(sprite);
+    if(sprite.parent !== this._sprites[parent])
+        { this._sprites[parent].addChild(sprite); }
+
+    this._pushOrder(id);
 };
 
 WindowBuilder.prototype.label = function label (id, parent, text, params){
-    this._upsertWidget(id, parent, params, function (label){
-        label.type = 'Label';
-        label.text = text;
-    });
+    if(this._isWidget(parent)){
+        this._upsertWidget(id, parent, params, function (label){
+            label.type = 'Label';
+            label.text = text;
+        });
+    }else{
+        this._upsertSprite(id, parent, params, function (){ return new LabelSprite(); }, function (label){
+            label.setText(text);
+        });
+    }
+};
+
+WindowBuilder.prototype._isWidget = function _isWidget (parentId){
+    return parentId !== 'stage' && (this._sprites[parentId] instanceof BaseWindow);
 };
 
 WindowBuilder.prototype.picture = function picture (id, parent, name, params){
-    this._upsertWidget(id, parent, params, function (picture){
-        picture.type = 'Picture';
-        picture.bitmap = ImageManager.loadPicture(name);
-        picture.bitmapName = name;
-    });
+    if(this._isWidget(parent)){
+        this._upsertWidget(id, parent, params, function (picture){
+            picture.type = 'Picture';
+            picture.bitmap = ImageManager.loadPicture(name);
+            picture.bitmapName = name;
+        });
+    }else{
+        this._upsertSprite(id, parent, params, function (){ return new BaseSprite(); }, function (sprite){
+            if(name) { sprite.bitmap = ImageManager.loadPicture(name); }
+            sprite.bitmapName = name;
+        });
+    }
 };
 
 WindowBuilder.prototype._upsertWidget = function _upsertWidget (id, parent, params, modifier){
@@ -557,14 +714,13 @@ WindowBuilder.prototype.save = function save (){
     });
 
     var data = {};
-    data.sprites = {};
-    Object.keys(this._sprites).forEach(function (key){
+    data.sprites = this._order.map(function (key){
         if(key !== 'stage'){
-            data.sprites[key] = this$1._sprites[key].save();
-            data.sprites[key]._liply_id = this$1._sprites[key]._liply_id;
-            data.sprites[key]._liply_parentId = this$1._sprites[key]._liply_parentId;
+            return Object.assign({}, this$1._sprites[key].save(),
+                {id: this$1._sprites[key]._liply_id,
+                parentId: this$1._sprites[key]._liply_parentId})
         }
-    });
+    }).filter(function (data){ return data; });
 
     return data;
 };
@@ -574,18 +730,25 @@ WindowBuilder.prototype.load = function load (data){
 
     this.clear();
 
-    Object.keys(data.sprites).forEach(function (key){
-        switch(data.sprites[key].type){
+    data.sprites.forEach(function (data){
+        var id = data.id;
+        var parentId = data.parentId;
+        switch(data.type){
             case 'BaseWindow':
-                this$1._sprites[key] = new BaseWindow(data.sprites[key]);
+                this$1._sprites[id] = new BaseWindow(data);
                 break;
 
             case 'BaseSprite':
-                this$1._sprites[key] = new BaseSprite(data.sprites[key]);
+                this$1._sprites[id] = new BaseSprite(data);
+                break;
+
+            case 'LabelSprite':
+                this$1._sprites[id] = new LabelSprite(data);
                 break;
         }
-        this$1._sprites[key]._liply_id = data.sprites[key]._liply_id;
-        this$1._sprites[key]._liply_parentId = data.sprites[key]._liply_parentId;
+        this$1._sprites[id]._liply_id = id;
+        this$1._sprites[id]._liply_parentId = parentId;
+        this$1._order.push(id);
     });
 
     Object.keys(this._sprites).forEach(function (key){
@@ -620,13 +783,6 @@ registerPluginCommands({
         while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
 
         getCurrentBuilder().picture(id, parent, name, params);
-    },
-
-    sprite: function sprite(id, parent, name){
-        var params = [], len = arguments.length - 3;
-        while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
-
-        getCurrentBuilder().sprite(id, parent, name, params);
     },
 
     close: function close(id){

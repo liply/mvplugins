@@ -1,11 +1,13 @@
 import BaseWindow from './BaseWindow.js'
 import BaseSprite from './BaseSprite.js'
+import LabelSprite from './LabelSprite.js'
 import {contains} from '../lib/util.js'
 
 
 export default class WindowBuilder{
     constructor() {
         this._stage = new BaseSprite();
+        this._order = [];
         this._sprites = {stage: this._stage};
     }
 
@@ -30,6 +32,8 @@ export default class WindowBuilder{
                 sprite.parent.removeChild(sprite);
                 delete this._sprites[id];
             }
+
+            this._order.splice(this._order.indexOf(id), 1);
         }
     }
 
@@ -60,8 +64,11 @@ export default class WindowBuilder{
             .forEach(key=>this._sprites[key].refresh());
     }
 
-    animate(id, params){
+    _pushOrder(id){
+        if(this._order.indexOf(id) === -1)this._order.push(id);
+    }
 
+    animate(id, params){
         for(let key in this._sprites){
             if(this._sprites.hasOwnProperty(key)){
                 const window = this._sprites[key];
@@ -85,7 +92,6 @@ export default class WindowBuilder{
         if(this._sprites[id]){
             window = this._sprites[id];
             window.finishAnimation();
-            window.parent.removeChild(window);
         }else{
             window = new BaseWindow();
         }
@@ -97,43 +103,65 @@ export default class WindowBuilder{
         window._liply_parentId = parent;
 
         this._sprites[id] = window;
-        this._sprites[parent].addChild(window);
+        if(window.parent !== this._sprites[parent])
+            this._sprites[parent].addChild(window);
+        this._pushOrder(id);
     }
 
-    sprite(id, parent, name, params){
+    _upsertSprite(id, parent, params, factory, modifier){
         let sprite;
         if(this._sprites[id]){
             sprite = this._sprites[id];
             sprite.finishAnimation();
-            sprite.parent.removeChild(sprite);
         }else{
-            sprite = new BaseSprite();
+            sprite = factory();
         }
 
         let p = this._parseParams(null, params);
         this._applyBasicParams(sprite, p);
-        if(name) sprite.bitmap = ImageManager.loadPicture(name);
-        sprite.bitmapName = name;
+
         sprite._liply_id = id;
         sprite._liply_parentId = parent;
 
+        modifier(sprite);
+
         this._sprites[id] = sprite;
-        this._sprites[parent].addChild(sprite);
+        if(sprite.parent !== this._sprites[parent])
+            this._sprites[parent].addChild(sprite);
+
+        this._pushOrder(id);
     }
 
     label(id, parent, text, params){
-        this._upsertWidget(id, parent, params, (label)=>{
-            label.type = 'Label';
-            label.text = text;
-        });
+        if(this._isWidget(parent)){
+            this._upsertWidget(id, parent, params, (label)=>{
+                label.type = 'Label';
+                label.text = text;
+            });
+        }else{
+            this._upsertSprite(id, parent, params, ()=>new LabelSprite(), (label)=>{
+                label.setText(text);
+            })
+        }
+    }
+
+    _isWidget(parentId){
+        return parentId !== 'stage' && (this._sprites[parentId] instanceof BaseWindow);
     }
 
     picture(id, parent, name, params){
-        this._upsertWidget(id, parent, params, (picture)=>{
-            picture.type = 'Picture';
-            picture.bitmap = ImageManager.loadPicture(name);
-            picture.bitmapName = name;
-        });
+        if(this._isWidget(parent)){
+            this._upsertWidget(id, parent, params, (picture)=>{
+                picture.type = 'Picture';
+                picture.bitmap = ImageManager.loadPicture(name);
+                picture.bitmapName = name;
+            });
+        }else{
+            this._upsertSprite(id, parent, params, ()=>new BaseSprite(), (sprite)=>{
+                if(name) sprite.bitmap = ImageManager.loadPicture(name);
+                sprite.bitmapName = name;
+            });
+        }
     }
 
     _upsertWidget(id, parent, params, modifier){
@@ -196,14 +224,15 @@ export default class WindowBuilder{
         });
 
         let data = {};
-        data.sprites = {};
-        Object.keys(this._sprites).forEach(key=>{
+        data.sprites = this._order.map(key=>{
             if(key !== 'stage'){
-                data.sprites[key] = this._sprites[key].save();
-                data.sprites[key]._liply_id = this._sprites[key]._liply_id;
-                data.sprites[key]._liply_parentId = this._sprites[key]._liply_parentId;
+                return {
+                    ...this._sprites[key].save(),
+                    id: this._sprites[key]._liply_id,
+                    parentId: this._sprites[key]._liply_parentId
+                }
             }
-        });
+        }).filter(data=>data);
 
         return data;
     }
@@ -211,18 +240,25 @@ export default class WindowBuilder{
     load(data){
         this.clear();
 
-        Object.keys(data.sprites).forEach(key=>{
-            switch(data.sprites[key].type){
+        data.sprites.forEach(data=>{
+            let id = data.id;
+            let parentId = data.parentId;
+            switch(data.type){
                 case 'BaseWindow':
-                    this._sprites[key] = new BaseWindow(data.sprites[key]);
+                    this._sprites[id] = new BaseWindow(data);
                     break;
 
                 case 'BaseSprite':
-                    this._sprites[key] = new BaseSprite(data.sprites[key]);
+                    this._sprites[id] = new BaseSprite(data);
+                    break;
+
+                case 'LabelSprite':
+                    this._sprites[id] = new LabelSprite(data);
                     break;
             }
-            this._sprites[key]._liply_id = data.sprites[key]._liply_id;
-            this._sprites[key]._liply_parentId = data.sprites[key]._liply_parentId;
+            this._sprites[id]._liply_id = id;
+            this._sprites[id]._liply_parentId = parentId;
+            this._order.push(id);
         });
 
         Object.keys(this._sprites).forEach(key=>{

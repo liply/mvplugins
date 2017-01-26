@@ -126,8 +126,12 @@ export default class BaseWindow extends Window_Base{
     drawPicture(picture){
         this.contents.blt(picture.bitmap,
             0, 0,
-            picture.bitmap.width, picture.bitmap.height,
-            picture.x, picture.y);
+            picture.bitmap.width,
+            picture.bitmap.height,
+            picture.x, picture.y,
+            picture.bitmap.width * (picture.scaleX || 1),
+            picture.bitmap.height * (picture.scaleY || 1)
+        );
     }
 }
 

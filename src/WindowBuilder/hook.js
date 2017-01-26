@@ -18,10 +18,6 @@ registerPluginCommands({
         getCurrentBuilder().picture(id, parent, name, params);
     },
 
-    sprite(id, parent, name, ...params){
-        getCurrentBuilder().sprite(id, parent, name, params);
-    },
-
     close(id){
         getCurrentBuilder().close(id);
     },
