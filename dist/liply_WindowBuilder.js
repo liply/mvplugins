@@ -696,6 +696,8 @@ WindowBuilder.prototype._parseParams = function _parseParams (window, params){
 };
 
 WindowBuilder.prototype._convertUnit = function _convertUnit (window, value){
+    value = this._resolveReference(value);
+
     if(contains(value, 'line')){
         return +value.slice(0, -4) * window.lineHeight();
     }
@@ -704,6 +706,16 @@ WindowBuilder.prototype._convertUnit = function _convertUnit (window, value){
     }
 
     return +value;
+};
+
+WindowBuilder.prototype._resolveReference = function _resolveReference (value){
+    var match;
+    var expVariable = /\\V\[(\d)\]/;
+    if(match = expVariable.exec(value)){
+        return value.replace(expVariable, $gameVariables.value(+match[1]));
+    }
+
+    return value;
 };
 
 WindowBuilder.prototype.save = function save (){
@@ -748,7 +760,7 @@ WindowBuilder.prototype.load = function load (data){
         }
         this$1._sprites[id]._liply_id = id;
         this$1._sprites[id]._liply_parentId = parentId;
-        this$1._order.push(id);
+        this$1._pushOrder(id);
     });
 
     Object.keys(this._sprites).forEach(function (key){

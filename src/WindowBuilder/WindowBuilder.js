@@ -208,6 +208,8 @@ export default class WindowBuilder{
     }
 
     _convertUnit(window, value){
+        value = this._resolveReference(value);
+
         if(contains(value, 'line')){
             return +value.slice(0, -4) * window.lineHeight();
         }
@@ -216,6 +218,16 @@ export default class WindowBuilder{
         }
 
         return +value;
+    }
+
+    _resolveReference(value){
+        let match;
+        let expVariable = /\\V\[(\d)\]/;
+        if(match = expVariable.exec(value)){
+            return value.replace(expVariable, $gameVariables.value(+match[1]));
+        }
+
+        return value;
     }
 
     save(){
@@ -258,7 +270,7 @@ export default class WindowBuilder{
             }
             this._sprites[id]._liply_id = id;
             this._sprites[id]._liply_parentId = parentId;
-            this._order.push(id);
+            this._pushOrder(id);
         });
 
         Object.keys(this._sprites).forEach(key=>{
