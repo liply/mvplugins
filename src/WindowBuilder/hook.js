@@ -28,6 +28,14 @@ registerPluginCommands({
 
     animate(id, ...params){
         getCurrentBuilder().animate(id, params);
+    },
+
+    setTrigger(id, commonId){
+        getCurrentBuilder().setOnTriggerHandler(id, commonId);
+    },
+
+    removeTrigger(id){
+        getCurrentBuilder().removeOnTriggerHandler(id);
     }
 });
 
@@ -49,6 +57,14 @@ wrapPrototype(Scene_Map, 'terminate', old=>function(){
 
 wrapPrototype(Scene_Map, 'update', old=>function(){
     this._liply_windowBuilder.update();
+
+    if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
+        let commonId = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
+        if(commonId){
+            $gameTemp.reserveCommonEvent(commonId);
+        }
+    }
+
     old.call(this);
 });
 
@@ -56,17 +72,3 @@ wrapPrototype(Scene_Map, 'createDisplayObjects', old=>function(){
     old.call(this);
     this.addChild(this._liply_windowBuilder.getStage());
 });
-
-//
-// wrapStatic(DataManager, 'saveGame', old=>function(){
-//     let currentBuilder = getCurrentBuilder();
-//     if(currentBuilder){
-//         $gameSystem._liply_windowBuilder = currentBuilder.save();
-//     }
-//
-//     let result = old.apply(this, arguments);
-//
-//     $gameSystem._liply_windowBuilder = null;
-//
-//     return result;
-// });

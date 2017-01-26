@@ -397,6 +397,16 @@ var BaseWindow = (function (Window_Base) {
         );
     };
 
+    BaseWindow.prototype.containsPoint = function containsPoint (p){
+        var gx = this.worldTransform[2];
+        var gy = this.worldTransform[5];
+        var w = this.width;
+        var h = this.height;
+
+        return gx <= p.x && p.x <= gx+w &&
+                gy <= p.y && p.y <= gy+h;
+    };
+
     return BaseWindow;
 }(Window_Base));
 
@@ -485,10 +495,32 @@ var WindowBuilder = function WindowBuilder() {
     this._stage = new BaseSprite();
     this._order = [];
     this._sprites = {stage: this._stage};
+    this._handlers = {trigger: {}};
 };
 
 WindowBuilder.prototype.getStage = function getStage (){
     return this._stage;
+};
+
+WindowBuilder.prototype.setOnTriggerHandler = function setOnTriggerHandler (id, commonId){
+    this._handlers.trigger[id] = commonId;
+};
+
+WindowBuilder.prototype.removeOnTriggerHandler = function removeOnTriggerHandler (id){
+    delete this._handlers.trigger[id];
+};
+
+WindowBuilder.prototype.getOnTriggerHandler = function getOnTriggerHandler (x, y){
+        var this$1 = this;
+
+    var point = new PIXI.Point(x, y);
+    var id;
+    this._order.forEach(function (key){
+        if(this$1._sprites[key].containsPoint(point))
+            { id = key; }
+    });
+
+    return this._handlers.trigger[id];
 };
 
 WindowBuilder.prototype.clear = function clear (){
@@ -730,7 +762,8 @@ WindowBuilder.prototype.save = function save (){
         if(key !== 'stage'){
             return Object.assign({}, this$1._sprites[key].save(),
                 {id: this$1._sprites[key]._liply_id,
-                parentId: this$1._sprites[key]._liply_parentId})
+                parentId: this$1._sprites[key]._liply_parentId,
+                handlers: this$1._handlers})
         }
     }).filter(function (data){ return data; });
 
@@ -741,6 +774,8 @@ WindowBuilder.prototype.load = function load (data){
         var this$1 = this;
 
     this.clear();
+
+    data._handlers = data.handlers;
 
     data.sprites.forEach(function (data){
         var id = data.id;
@@ -813,6 +848,14 @@ registerPluginCommands({
         while ( len-- > 0 ) params[ len ] = arguments[ len + 1 ];
 
         getCurrentBuilder().animate(id, params);
+    },
+
+    setTrigger: function setTrigger(id, commonId){
+        getCurrentBuilder().setOnTriggerHandler(id, commonId);
+    },
+
+    removeTrigger: function removeTrigger(id){
+        getCurrentBuilder().removeOnTriggerHandler(id);
     }
 });
 
@@ -834,6 +877,14 @@ wrapPrototype(Scene_Map, 'terminate', function (old){ return function(){
 
 wrapPrototype(Scene_Map, 'update', function (old){ return function(){
     this._liply_windowBuilder.update();
+
+    if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
+        var commonId = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
+        if(commonId){
+            $gameTemp.reserveCommonEvent(commonId);
+        }
+    }
+
     old.call(this);
 }; });
 
@@ -841,19 +892,5 @@ wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function
     old.call(this);
     this.addChild(this._liply_windowBuilder.getStage());
 }; });
-
-//
-// wrapStatic(DataManager, 'saveGame', old=>function(){
-//     let currentBuilder = getCurrentBuilder();
-//     if(currentBuilder){
-//         $gameSystem._liply_windowBuilder = currentBuilder.save();
-//     }
-//
-//     let result = old.apply(this, arguments);
-//
-//     $gameSystem._liply_windowBuilder = null;
-//
-//     return result;
-// });
 
 }());

@@ -9,10 +9,30 @@ export default class WindowBuilder{
         this._stage = new BaseSprite();
         this._order = [];
         this._sprites = {stage: this._stage};
+        this._handlers = {trigger: {}};
     }
 
     getStage(){
         return this._stage;
+    }
+
+    setOnTriggerHandler(id, commonId){
+        this._handlers.trigger[id] = commonId;
+    }
+
+    removeOnTriggerHandler(id){
+        delete this._handlers.trigger[id];
+    }
+
+    getOnTriggerHandler(x, y){
+        let point = new PIXI.Point(x, y);
+        let id;
+        this._order.forEach(key=>{
+            if(this._sprites[key].containsPoint(point))
+                id = key;
+        });
+
+        return this._handlers.trigger[id];
     }
 
     clear(){
@@ -241,7 +261,8 @@ export default class WindowBuilder{
                 return {
                     ...this._sprites[key].save(),
                     id: this._sprites[key]._liply_id,
-                    parentId: this._sprites[key]._liply_parentId
+                    parentId: this._sprites[key]._liply_parentId,
+                    handlers: this._handlers
                 }
             }
         }).filter(data=>data);
@@ -251,6 +272,8 @@ export default class WindowBuilder{
 
     load(data){
         this.clear();
+
+        data._handlers = data.handlers;
 
         data.sprites.forEach(data=>{
             let id = data.id;

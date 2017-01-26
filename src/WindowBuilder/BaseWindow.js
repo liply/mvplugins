@@ -133,6 +133,16 @@ export default class BaseWindow extends Window_Base{
             picture.bitmap.height * (picture.scaleY || 1)
         );
     }
+
+    containsPoint(p){
+        let gx = this.worldTransform[2];
+        let gy = this.worldTransform[5];
+        let w = this.width;
+        let h = this.height;
+
+        return gx <= p.x && p.x <= gx+w &&
+                gy <= p.y && p.y <= gy+h;
+    }
 }
 
 defineHelperProperties(BaseWindow);
