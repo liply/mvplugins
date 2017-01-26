@@ -3,8 +3,6 @@ import Animator from './Animator.js'
 
 export default class WidgetManager{
     constructor(target, type, widgets){
-        super();
-
         this._widgets = {};
         this._renderingOrder = [];
 
@@ -82,8 +80,6 @@ export default class WidgetManager{
     }
 
     update(){
-        super.update();
-
         if(this._animator) this._animator.update();
         if(ImageManager.isReady() && this.isDirty()){
             this.refresh();
@@ -120,5 +116,38 @@ export default class WidgetManager{
 
     isDirty(){
         return this._dirty || this._isWidgetChanged();
+    }
+
+    getIdUnder(p){
+        let id;
+        let prefix = '_containsPointWindow';
+
+        this._renderingOrder.forEach(widget=>{
+            id = this[prefix+widget.type](widget, p);
+        });
+
+        return id;
+    }
+
+    _containsPointWindowPicture(widget, p){
+        let width = widget.bitmap.width;
+        let height = widget.bitmap.height;
+
+        return this._containsPointWindowWidgetBasic(widget.x, widget.y, width, height, p) && widget.id;
+    }
+
+    _containsPointWindowLabel(widget, p){
+        let width = this._target.textWidth(widget.text);
+        let height = this._target.lineHeight();
+
+        return this._containsPointWindowWidgetBasic(widget.x, widget.y, width, height, p) && widget.id;
+    }
+
+    _containsPointWindowWidgetBasic(x, y, w, h, p){
+        const gx = this._target._windowContentsSprite.worldTransform.tx + x;
+        const gy = this._target._windowContentsSprite.worldTransform.ty + y;
+
+        return gx <= p.x && p.x <= gx+w &&
+            gy <= p.y && p.y <= gy+h;
     }
 }

@@ -45,6 +45,7 @@ wrapPrototype(Scene_Map, 'create', old=>function(){
 
     if($gameSystem._liply_windowBuilder){
         this._liply_windowBuilder.load($gameSystem._liply_windowBuilder);
+        $gameSystem._liply_windowBuilder = null;
     }
 
     old.call(this);

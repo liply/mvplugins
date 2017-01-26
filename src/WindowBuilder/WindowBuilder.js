@@ -24,15 +24,19 @@ export default class WindowBuilder{
         delete this._handlers.trigger[id];
     }
 
-    getOnTriggerHandler(x, y){
+    getIdUnder(x, y){
         let point = new PIXI.Point(x, y);
         let id;
+
         this._order.forEach(key=>{
-            if(this._sprites[key].containsPoint(point))
-                id = key;
+            id = this._sprites[key].getIdUnder(point) || id;
         });
 
-        return this._handlers.trigger[id];
+        return id;
+    }
+
+    getOnTriggerHandler(x, y){
+        return this._handlers.trigger[this.getIdUnder(x, y)];
     }
 
     clear(){
@@ -113,7 +117,7 @@ export default class WindowBuilder{
             window = this._sprites[id];
             window.finishAnimation();
         }else{
-            window = new BaseWindow();
+            window = new BaseWindow(id);
         }
 
         let p = this._parseParams(window, params);
@@ -159,7 +163,7 @@ export default class WindowBuilder{
                 label.text = text;
             });
         }else{
-            this._upsertSprite(id, parent, params, ()=>new LabelSprite(), (label)=>{
+            this._upsertSprite(id, parent, params, ()=>new LabelSprite(id), (label)=>{
                 label.setText(text);
             })
         }
@@ -177,7 +181,7 @@ export default class WindowBuilder{
                 picture.bitmapName = name;
             });
         }else{
-            this._upsertSprite(id, parent, params, ()=>new BaseSprite(), (sprite)=>{
+            this._upsertSprite(id, parent, params, ()=>new BaseSprite(id), (sprite)=>{
                 if(name) sprite.bitmap = ImageManager.loadPicture(name);
                 sprite.bitmapName = name;
             });
@@ -280,15 +284,15 @@ export default class WindowBuilder{
             let parentId = data.parentId;
             switch(data.type){
                 case 'BaseWindow':
-                    this._sprites[id] = new BaseWindow(data);
+                    this._sprites[id] = new BaseWindow(id, data);
                     break;
 
                 case 'BaseSprite':
-                    this._sprites[id] = new BaseSprite(data);
+                    this._sprites[id] = new BaseSprite(id, data);
                     break;
 
                 case 'LabelSprite':
-                    this._sprites[id] = new LabelSprite(data);
+                    this._sprites[id] = new LabelSprite(id, data);
                     break;
             }
             this._sprites[id]._liply_id = id;

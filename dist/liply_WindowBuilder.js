@@ -225,6 +225,161 @@ Animator.prototype.finish = function finish (){
     this._animatedValues = {};
 };
 
+var WidgetManager = function WidgetManager(target, type, widgets){
+    var this$1 = this;
+
+    this._widgets = {};
+    this._renderingOrder = [];
+
+    this._target = target;
+    this._isWindow = type === 'Window';
+
+    if(widgets){
+        this._renderingOrder = widgets.map(function (widget){
+            if(widget.bitmapName){
+                widget.bitmap = ImageManager.loadPicture(widget.bitmapName);
+            }
+            return widget;
+        });
+        this._renderingOrder
+            .forEach(function (widget){ return (this$1._widgets[widget.id] = widget); });
+
+        this.markDirty();
+    }
+};
+
+WidgetManager.prototype.save = function save (){
+    return this._renderingOrder
+        .map(function (widget){
+            delete widget.bitmap;
+            delete widget.animator;
+
+            return widget;
+        });
+};
+
+WidgetManager.prototype.animate = function animate (id, fields){
+    var widget = this._widgets[id];
+    if(widget){
+        if(!widget.animator){
+            widget.animator = new Animator(widget, true);
+        }
+        widget.animator.animate(fields);
+    }
+};
+
+WidgetManager.prototype.finishAnimation = function finishAnimation (){
+    this._renderingOrder.forEach(function (widget){ return (widget.animator && widget.animator.finish()); });
+};
+
+WidgetManager.prototype.add = function add (widget){
+    var id = widget.id;
+    this._renderingOrder.push(widget);
+    this._widgets[id] = widget;
+    this.markDirty();
+};
+
+WidgetManager.prototype.find = function find (id){
+    return this._widgets[id];
+};
+
+WidgetManager.prototype.remove = function remove (id){
+    var widget = this._widgets[id];
+
+    this._renderingOrder.splice(this._renderingOrder.indexOf(widget), 1);
+    delete this._widgets[id];
+
+    this.markDirty();
+};
+
+WidgetManager.prototype.markDirty = function markDirty (){
+    this._dirty = true;
+};
+
+WidgetManager.prototype._isWidgetChanged = function _isWidgetChanged (){
+    return this._renderingOrder.some(function (widget){ return widget.dirty; });
+};
+
+WidgetManager.prototype._clearWidgetsDirtyFlag = function _clearWidgetsDirtyFlag (){
+    this._renderingOrder.forEach(function (widget){ return (widget.dirty = false); });
+};
+
+WidgetManager.prototype.update = function update (){
+    if(this._animator) { this._animator.update(); }
+    if(ImageManager.isReady() && this.isDirty()){
+        this.refresh();
+    }
+};
+
+WidgetManager.prototype.refresh = function refresh (){
+        var this$1 = this;
+
+    this._dirty = false;
+    this._clearWidgetsDirtyFlag();
+
+    var prefix;
+    if(this._isWindow){
+        this._target.contents.clear();
+        prefix = '_drawWindow';
+    }
+
+    this._renderingOrder.forEach(function (widget){ return this$1[prefix+widget.type](widget); });
+};
+
+WidgetManager.prototype._drawWindowLabel = function _drawWindowLabel (label){
+    this._target.drawTextEx(label.text, label.x, label.y);
+};
+
+WidgetManager.prototype._drawWindowPicture = function _drawWindowPicture (picture){
+    this._target.contents.blt(picture.bitmap,
+        0, 0,
+        picture.bitmap.width,
+        picture.bitmap.height,
+        picture.x, picture.y,
+        picture.bitmap.width * (picture.scaleX || 1),
+        picture.bitmap.height * (picture.scaleY || 1)
+    );
+};
+
+WidgetManager.prototype.isDirty = function isDirty (){
+    return this._dirty || this._isWidgetChanged();
+};
+
+WidgetManager.prototype.getIdUnder = function getIdUnder (p){
+        var this$1 = this;
+
+    var id;
+    var prefix = '_containsPointWindow';
+
+    this._renderingOrder.forEach(function (widget){
+        id = this$1[prefix+widget.type](widget, p);
+    });
+
+    return id;
+};
+
+WidgetManager.prototype._containsPointWindowPicture = function _containsPointWindowPicture (widget, p){
+    var width = widget.bitmap.width;
+    var height = widget.bitmap.height;
+
+    return this._containsPointWindowWidgetBasic(widget.x, widget.y, width, height, p) && widget.id;
+};
+
+WidgetManager.prototype._containsPointWindowLabel = function _containsPointWindowLabel (widget, p){
+    var width = this._target.textWidth(widget.text);
+    var height = this._target.lineHeight();
+
+    return this._containsPointWindowWidgetBasic(widget.x, widget.y, width, height, p) && widget.id;
+};
+
+WidgetManager.prototype._containsPointWindowWidgetBasic = function _containsPointWindowWidgetBasic (x, y, w, h, p){
+    var gx = this._target._windowContentsSprite.worldTransform.tx + x;
+    var gy = this._target._windowContentsSprite.worldTransform.ty + y;
+
+    return gx <= p.x && p.x <= gx+w &&
+        gy <= p.y && p.y <= gy+h;
+};
+
 function saveBasic(sprite){
     var data = {};
     ['x', 'y', 'scaleX', 'scaleY', 'rotation', 'bitmapName', 'width', 'height'].forEach(function (key){
@@ -251,39 +406,44 @@ function defineHelperProperties(klass){
             set: function set(value){
                 this.scale.y = value;
             }
+        },
+
+        anchorX: {
+            get: function get(){
+                return this.anchor.x;
+            },
+            set: function set(value){
+                this.anchor.x = value;
+            }
+        },
+        anchorY: {
+            get: function get(){
+                return this.anchor.y;
+            },
+            set: function set(value){
+                this.anchor.y = value;
+            }
         }
     });
 
 }
 
 var BaseWindow = (function (Window_Base) {
-    function BaseWindow(data){
+    function BaseWindow(id, data){
         var this$1 = this;
 
         Window_Base.call(this);
 
-        this._widgets = {};
+        this._widgets = new WidgetManager(this, 'Window', data && data.widgets);
         this._renderingOrder = [];
+        this._id = id;
 
         if(data){
             delete data.type;
+            delete data.widgets;
 
             Object.keys(data).forEach(function (key){
-                switch(key){
-                    case 'widgets':
-                        this$1._renderingOrder = data.widgets.map(function (widget){
-                            if(widget.bitmapName){
-                                widget.bitmap = ImageManager.loadPicture(widget.bitmapName);
-                            }
-                            return widget;
-                        });
-                        this$1._renderingOrder
-                            .forEach(function (widget){ return (this$1._widgets[widget.id] = widget); });
-                        break;
-
-                    default:
-                        this$1[key] = data[key];
-                }
+                this$1[key] = data[key];
             });
 
             this.markDirty();
@@ -304,107 +464,69 @@ var BaseWindow = (function (Window_Base) {
     BaseWindow.prototype.save = function save (){
         var data = saveBasic(this);
         data.type = 'BaseWindow';
-
-        data.widgets = this._renderingOrder
-            .map(function (widget){
-                delete widget.bitmap;
-                return widget;
-            });
+        data.widgets = this._widgets.save();
 
         return data;
     };
 
     BaseWindow.prototype.animateWidget = function animateWidget (id, fields){
-        var widget = this._widgets[id];
-        if(widget){
-            if(!widget.animator){
-                widget.animator = new Animator(widget, true);
-            }
-            widget.animator.animate(fields);
-        }
+        this._widgets.animate(id, fields);
     };
 
     BaseWindow.prototype.finishAnimation = function finishAnimation (){
         if(this._animator){ this._animator.finish(); }
+        this._widgets.finishAnimation();
     };
 
     BaseWindow.prototype.addWidget = function addWidget (widget){
-        var id = widget.id;
-        this._renderingOrder.push(widget);
-        this._widgets[id] = widget;
+        this._widgets.add(widget);
         this.markDirty();
     };
 
     BaseWindow.prototype.findWidget = function findWidget (id){
-        return this._widgets[id];
+        return this._widgets.find(id);
     };
 
     BaseWindow.prototype.removeWidget = function removeWidget (id){
-        var widget = this._widgets[id];
-
-        this._renderingOrder.splice(this._renderingOrder.indexOf(widget), 1);
-        delete this._widgets[id];
-
-        this.markDirty();
+        this._widgets.remove(id);
     };
 
     BaseWindow.prototype.markDirty = function markDirty (){
         this._dirty = true;
     };
 
-    BaseWindow.prototype._isWidgetChanged = function _isWidgetChanged (){
-        return this._renderingOrder.some(function (widget){ return widget.dirty; });
-    };
-
-    BaseWindow.prototype._clearWidgetsDirtyFlag = function _clearWidgetsDirtyFlag (){
-        this._renderingOrder.forEach(function (widget){ return (widget.dirty = false); });
-    };
-
     BaseWindow.prototype.update = function update (){
         Window_Base.prototype.update.call(this);
 
         if(this._animator) { this._animator.update(); }
-        if(ImageManager.isReady() && (this._dirty || this._isWidgetChanged())){
+        if(ImageManager.isReady() && (this._dirty || this._widgets.isDirty())){
             this.refresh();
         }
     };
 
     BaseWindow.prototype.refresh = function refresh (){
-        var this$1 = this;
-
         this._dirty = false;
-        this._clearWidgetsDirtyFlag();
 
         if(this.contents.width !== this.width || this.contents.height !== this.height){
             this.contents = new Bitmap(this.width, this.height);
         }
-        this.contents.clear();
-        this._renderingOrder.forEach(function (widget){ return this$1['draw'+widget.type](widget); });
-    };
-
-    BaseWindow.prototype.drawLabel = function drawLabel (label){
-        this.drawTextEx(label.text, label.x, label.y);
-    };
-
-    BaseWindow.prototype.drawPicture = function drawPicture (picture){
-        this.contents.blt(picture.bitmap,
-            0, 0,
-            picture.bitmap.width,
-            picture.bitmap.height,
-            picture.x, picture.y,
-            picture.bitmap.width * (picture.scaleX || 1),
-            picture.bitmap.height * (picture.scaleY || 1)
-        );
+        this._widgets.refresh();
     };
 
     BaseWindow.prototype.containsPoint = function containsPoint (p){
-        var gx = this.worldTransform[2];
-        var gy = this.worldTransform[5];
+        var gx = this.worldTransform.tx;
+        var gy = this.worldTransform.ty;
         var w = this.width;
         var h = this.height;
 
         return gx <= p.x && p.x <= gx+w &&
                 gy <= p.y && p.y <= gy+h;
+    };
+
+    BaseWindow.prototype.getIdUnder = function getIdUnder (p){
+        if(this.containsPoint(p)){
+            return this._widgets.getIdUnder(p) || this._id;
+        }
     };
 
     return BaseWindow;
@@ -413,10 +535,12 @@ var BaseWindow = (function (Window_Base) {
 defineHelperProperties(BaseWindow);
 
 var BaseSprite = (function (Sprite) {
-    function BaseSprite(data){
+    function BaseSprite(id, data){
         var this$1 = this;
 
         Sprite.call(this);
+        this._id = id;
+
         if(data){
             Object.keys(data).forEach(function (key){ return this$1[key] = data[key]; });
 
@@ -454,14 +578,18 @@ var BaseSprite = (function (Sprite) {
         Sprite.prototype.update.call(this);
     };
 
+    BaseSprite.prototype.getIdUnder = function getIdUnder (point){
+        return this.containsPoint(point) && this._id;
+    };
+
     return BaseSprite;
 }(Sprite));
 
 defineHelperProperties(BaseSprite);
 
 var LabelSprite = (function (BaseSprite$$1) {
-    function LabelSprite(data){
-        BaseSprite$$1.call(this, data);
+    function LabelSprite(id, data){
+        BaseSprite$$1.call(this, id, data);
 
         if(data && data.text){
             this.setText(data.text);
@@ -510,17 +638,21 @@ WindowBuilder.prototype.removeOnTriggerHandler = function removeOnTriggerHandler
     delete this._handlers.trigger[id];
 };
 
-WindowBuilder.prototype.getOnTriggerHandler = function getOnTriggerHandler (x, y){
+WindowBuilder.prototype.getIdUnder = function getIdUnder (x, y){
         var this$1 = this;
 
     var point = new PIXI.Point(x, y);
     var id;
+
     this._order.forEach(function (key){
-        if(this$1._sprites[key].containsPoint(point))
-            { id = key; }
+        id = this$1._sprites[key].getIdUnder(point) || id;
     });
 
-    return this._handlers.trigger[id];
+    return id;
+};
+
+WindowBuilder.prototype.getOnTriggerHandler = function getOnTriggerHandler (x, y){
+    return this._handlers.trigger[this.getIdUnder(x, y)];
 };
 
 WindowBuilder.prototype.clear = function clear (){
@@ -611,7 +743,7 @@ WindowBuilder.prototype.window = function window (id, parent, params){
         window = this._sprites[id];
         window.finishAnimation();
     }else{
-        window = new BaseWindow();
+        window = new BaseWindow(id);
     }
 
     var p = this._parseParams(window, params);
@@ -657,7 +789,7 @@ WindowBuilder.prototype.label = function label (id, parent, text, params){
             label.text = text;
         });
     }else{
-        this._upsertSprite(id, parent, params, function (){ return new LabelSprite(); }, function (label){
+        this._upsertSprite(id, parent, params, function (){ return new LabelSprite(id); }, function (label){
             label.setText(text);
         });
     }
@@ -675,7 +807,7 @@ WindowBuilder.prototype.picture = function picture (id, parent, name, params){
             picture.bitmapName = name;
         });
     }else{
-        this._upsertSprite(id, parent, params, function (){ return new BaseSprite(); }, function (sprite){
+        this._upsertSprite(id, parent, params, function (){ return new BaseSprite(id); }, function (sprite){
             if(name) { sprite.bitmap = ImageManager.loadPicture(name); }
             sprite.bitmapName = name;
         });
@@ -782,15 +914,15 @@ WindowBuilder.prototype.load = function load (data){
         var parentId = data.parentId;
         switch(data.type){
             case 'BaseWindow':
-                this$1._sprites[id] = new BaseWindow(data);
+                this$1._sprites[id] = new BaseWindow(id, data);
                 break;
 
             case 'BaseSprite':
-                this$1._sprites[id] = new BaseSprite(data);
+                this$1._sprites[id] = new BaseSprite(id, data);
                 break;
 
             case 'LabelSprite':
-                this$1._sprites[id] = new LabelSprite(data);
+                this$1._sprites[id] = new LabelSprite(id, data);
                 break;
         }
         this$1._sprites[id]._liply_id = id;
@@ -865,6 +997,7 @@ wrapPrototype(Scene_Map, 'create', function (old){ return function(){
 
     if($gameSystem._liply_windowBuilder){
         this._liply_windowBuilder.load($gameSystem._liply_windowBuilder);
+        $gameSystem._liply_windowBuilder = null;
     }
 
     old.call(this);

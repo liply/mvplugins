@@ -1,8 +1,8 @@
 import BaseSprite from './BaseSprite.js'
 
 export default class LabelSprite extends BaseSprite {
-    constructor(data){
-        super(data);
+    constructor(id, data){
+        super(id, data);
 
         if(data && data.text){
             this.setText(data.text);

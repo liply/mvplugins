@@ -3,11 +3,12 @@ import WidgetManager from './WidgetManager.js'
 import {saveBasic, defineHelperProperties} from './SpriteUtil.js'
 
 export default class BaseWindow extends Window_Base{
-    constructor(data){
+    constructor(id, data){
         super();
 
         this._widgets = new WidgetManager(this, 'Window', data && data.widgets);
         this._renderingOrder = [];
+        this._id = id;
 
         if(data){
             delete data.type;
@@ -81,13 +82,19 @@ export default class BaseWindow extends Window_Base{
     }
 
     containsPoint(p){
-        let gx = this.worldTransform[2];
-        let gy = this.worldTransform[5];
+        let gx = this.worldTransform.tx;
+        let gy = this.worldTransform.ty;
         let w = this.width;
         let h = this.height;
 
         return gx <= p.x && p.x <= gx+w &&
                 gy <= p.y && p.y <= gy+h;
+    }
+
+    getIdUnder(p){
+        if(this.containsPoint(p)){
+            return this._widgets.getIdUnder(p) || this._id;
+        }
     }
 }
 

@@ -2,8 +2,10 @@ import Animator from './Animator.js'
 import {saveBasic, defineHelperProperties} from './SpriteUtil.js'
 
 export default class BaseSprite extends Sprite{
-    constructor(data){
+    constructor(id, data){
         super();
+        this._id = id;
+
         if(data){
             Object.keys(data).forEach(key=>this[key] = data[key]);
 
@@ -35,6 +37,10 @@ export default class BaseSprite extends Sprite{
         if(this._animator)this._animator.update();
 
         super.update();
+    }
+
+    getIdUnder(point){
+        return this.containsPoint(point) && this._id;
     }
 }
 

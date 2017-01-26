@@ -25,6 +25,23 @@ export function defineHelperProperties(klass){
             set(value){
                 this.scale.y = value;
             }
+        },
+
+        anchorX: {
+            get(){
+                return this.anchor.x;
+            },
+            set(value){
+                this.anchor.x = value;
+            }
+        },
+        anchorY: {
+            get(){
+                return this.anchor.y;
+            },
+            set(value){
+                this.anchor.y = value;
+            }
         }
     });
 
