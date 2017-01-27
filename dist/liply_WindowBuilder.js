@@ -430,6 +430,18 @@ function defineHelperProperties(klass){
 
 }
 
+
+function isInsideScreen(sprite){
+    var b = sprite.getBounds();
+    var gw = Graphics.width;
+    var gh = Graphics.height;
+
+    return b.x + b.width >= 0 &&
+        b.x <= gw &&
+        b.y + b.height >= 0 &&
+        b.y <= gh;
+}
+
 var BaseWindow = (function (Window_Base) {
     function BaseWindow(id, data){
         var this$1 = this;
@@ -500,6 +512,9 @@ var BaseWindow = (function (Window_Base) {
     BaseWindow.prototype.update = function update (){
         Window_Base.prototype.update.call(this);
 
+        if(isInsideScreen(this)) { this._activateBitmap(); }
+        else { this._deactivateBitmap(); }
+
         if(this._animator) { this._animator.update(); }
         if(ImageManager.isReady() && (this._dirty || this._widgets.isDirty())){
             this.refresh();
@@ -509,7 +524,7 @@ var BaseWindow = (function (Window_Base) {
     BaseWindow.prototype.refresh = function refresh (){
         this._dirty = false;
 
-        if(this.contents.width !== this.width || this.contents.height !== this.height){
+        if(this.isBitmapActive() && (this.contents.width !== this.width || this.contents.height !== this.height)){
             this.contents = new Bitmap(this.width, this.height);
         }
         this._widgets.refresh();
@@ -531,6 +546,36 @@ var BaseWindow = (function (Window_Base) {
         }
     };
 
+    BaseWindow.prototype._deactivateBitmap = function _deactivateBitmap (){
+        if(this._bitmapActive){
+            var empty = ImageManager.loadEmptyBitmap();
+            this._windowBackSprite.bitmap = empty;
+            this._windowFrameSprite.bitmap = empty;
+            this._windowCursorSprite.bitmap = empty;
+            this.contents = empty;
+            this._bitmapVisible = this.visible;
+
+            this.visible = false;
+            this._bitmapActive = false;
+        }
+    };
+
+    BaseWindow.prototype.isBitmapActive = function isBitmapActive (){
+        return this._bitmapActive;
+    };
+
+    BaseWindow.prototype._activateBitmap = function _activateBitmap () {
+        if (!this._bitmapActive) {
+            this._bitmapActive = true;
+
+            if(this._bitmapVisible !== undefined)
+                { this.visible = this._bitmapVisible; }
+
+            this._refreshAllParts();
+            this.markDirty();
+        }
+    };
+
     return BaseWindow;
 }(Window_Base));
 
@@ -547,6 +592,7 @@ var BaseSprite = (function (Sprite) {
             Object.keys(data).forEach(function (key){ return this$1[key] = data[key]; });
 
             if(data.bitmapName){
+                this._bitmapName = data.bitmapName;
                 this.bitmap = ImageManager.loadPicture(data.bitmapName);
             }
         }
@@ -577,11 +623,40 @@ var BaseSprite = (function (Sprite) {
     BaseSprite.prototype.update = function update (){
         if(this._animator){ this._animator.update(); }
 
+        if(isInsideScreen(this)) { this._activateBitmap(); }
+        else { this._deactivateBitmap(); }
+
         Sprite.prototype.update.call(this);
     };
 
     BaseSprite.prototype.getIdUnder = function getIdUnder (point){
         return this.containsPoint(point) && this._id;
+    };
+
+    BaseSprite.prototype._deactivateBitmap = function _deactivateBitmap (){
+        if(this._bitmapActive){
+            this.bitmap = ImageManager.loadEmptyBitmap();
+            this._bitmapVisible = this.visible;
+
+            this.visible = false;
+            this._bitmapActive = false;
+        }
+    };
+
+    BaseSprite.prototype.isBitmapActive = function isBitmapActive (){
+        return this._bitmapActive;
+    };
+
+    BaseSprite.prototype._activateBitmap = function _activateBitmap () {
+        if (!this._bitmapActive) {
+            this._bitmapActive = true;
+
+            if(this._bitmapVisible !== undefined)
+                { this.visible = this._bitmapVisible; }
+
+            if(this._bitmapName)
+                { this.bitmap = ImageManager.loadPicture(this._bitmapName); }
+        }
     };
 
     return BaseSprite;
@@ -1059,5 +1134,9 @@ wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function
     old.call(this);
     this.addChild(this._liply_windowBuilder.getStage());
 }; });
+
+SceneManager.getWindowBuilder = function(){
+    return getCurrentBuilder();
+};
 
 }());
