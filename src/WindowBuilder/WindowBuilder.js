@@ -1,8 +1,7 @@
 import BaseWindow from './BaseWindow.js'
 import BaseSprite from './BaseSprite.js'
 import LabelSprite from './LabelSprite.js'
-import {contains} from '../lib/util.js'
-
+import parameters from './params.js'
 
 export default class WindowBuilder{
     constructor() {
@@ -97,13 +96,13 @@ export default class WindowBuilder{
             if(this._sprites.hasOwnProperty(key)){
                 const window = this._sprites[key];
                 if(key === id){
-                    let p = this._parseParams(window, params);
+                    let p = this._parseParams(params);
                     window.animate(p);
                     break;
                 }
 
                 if(window.findWidget && window.findWidget(id)){
-                    let p = this._parseParams(window, params);
+                    let p = this._parseParams(params);
                     window.animateWidget(p);
                     break;
                 }
@@ -120,7 +119,7 @@ export default class WindowBuilder{
             window = new BaseWindow(id);
         }
 
-        let p = this._parseParams(window, params);
+        let p = this._parseParams(params);
         this._applyBasicParams(window, p);
         window.setBackgroundType(p.background || 0);
         window._liply_id = id;
@@ -141,7 +140,7 @@ export default class WindowBuilder{
             sprite = factory();
         }
 
-        let p = this._parseParams(null, params);
+        let p = this._parseParams(params);
         this._applyBasicParams(sprite, p);
 
         sprite._liply_id = id;
@@ -192,13 +191,13 @@ export default class WindowBuilder{
         let parentWindow = this._sprites[parent];
         if(parentWindow.findWidget(id)){
             let widget = parentWindow.findWidget(id);
-            let newWidget = this._parseParams(parentWindow, params);
+            let newWidget = this._parseParams(params);
             Object.keys(newWidget)
                 .forEach(key=>widget[key] = newWidget[key]);
             widget.dirty = true;
             modifier(widget);
         }else{
-            let widget = this._parseParams(parentWindow, params);
+            let widget = this._parseParams(params);
             widget.id = id;
             modifier(widget);
 
@@ -220,33 +219,54 @@ export default class WindowBuilder{
             w.visible = p.visible;
     }
 
-    _parseParams(window, params){
+    _parseParams(params){
         let result = {};
 
-        for(let n = 0; n < params.length; n+=2){
-            const type = params[n];
-            result[type] = this._convertUnit(window, params[n + 1]);
+        if(params instanceof Array){
+            for(let n = 0; n < params.length; n+=2){
+                const type = params[n];
+                result[type] = this._convertUnit(params[n + 1]);
+            }
+        }else{
+            Object.keys(params).forEach(key=>{
+                result[key] = this._convertUnit(params[key]);
+            });
         }
 
         return result;
     }
 
-    _convertUnit(window, value){
-        value = this._resolveReference(value);
+    _extractUnit(value){
+        const match = /([\d\.]+)([a-zA-Z]+)/.exec(value);
+        if(match) return {value: +match[1], unit: match[2]};
+        return {value: +value};
+    }
 
-        if(contains(value, 'line')){
-            return +value.slice(0, -4) * window.lineHeight();
-        }
-        if(contains(value, 'fit')){
-            return window.fittingHeight(+value.slice(0, -3));
-        }
+    _convertUnit(rawValue){
+        rawValue = this._resolveReference(rawValue);
+        let {value, unit} = this._extractUnit(rawValue);
 
-        return +value;
+        switch(unit){
+            case 'column':
+                return Graphics.width / parameters.column * value;
+            case 'row':
+                return Graphics.height / parameters.row * value;
+            case 'vw':
+                return Graphics.width * (value / 100);
+            case 'vh':
+                return Graphics.height * (value / 100);
+            case 'bw':
+                return Graphics.boxWidth * (value / 100);
+            case 'bh':
+                return Graphics.boxHeight * (value / 100);
+            default:
+                return value;
+        }
     }
 
     _resolveReference(value){
         let match;
-        let expVariable = /\\V\[(\d)\]/;
+        let expVariable = /\\V\[(\d)\][a-zA-Z]+/;
         if(match = expVariable.exec(value)){
             return value.replace(expVariable, $gameVariables.value(+match[1]));
         }

@@ -6,12 +6,14 @@
  * @help
  * hoge
  *
+ * @param Grid Column
+ * @default 12
+ *
+ * @param Grid Row
+ * @default 8
+ *
  *
  */
-
-function contains(str, value){
-    return str.indexOf(value) !== -1;
-}
 
 function registerPluginCommands(commands){
     var lowerCaseCommands = {};
@@ -619,6 +621,15 @@ var LabelSprite = (function (BaseSprite$$1) {
     return LabelSprite;
 }(BaseSprite));
 
+var PLUGIN_NAME = 'liply_WindowBuilder';
+var parameters = PluginManager.parameters(PLUGIN_NAME);
+
+var parameters$1 = {
+    PLUGIN_NAME: PLUGIN_NAME,
+    column: +parameters['Grid Column'],
+    row: +parameters['Grid Row']
+};
+
 var WindowBuilder = function WindowBuilder() {
     this._stage = new BaseSprite();
     this._order = [];
@@ -723,13 +734,13 @@ WindowBuilder.prototype.animate = function animate (id, params){
         if(this$1._sprites.hasOwnProperty(key)){
             var window = this$1._sprites[key];
             if(key === id){
-                var p = this$1._parseParams(window, params);
+                var p = this$1._parseParams(params);
                 window.animate(p);
                 break;
             }
 
             if(window.findWidget && window.findWidget(id)){
-                var p$1 = this$1._parseParams(window, params);
+                var p$1 = this$1._parseParams(params);
                 window.animateWidget(p$1);
                 break;
             }
@@ -746,7 +757,7 @@ WindowBuilder.prototype.window = function window (id, parent, params){
         window = new BaseWindow(id);
     }
 
-    var p = this._parseParams(window, params);
+    var p = this._parseParams(params);
     this._applyBasicParams(window, p);
     window.setBackgroundType(p.background || 0);
     window._liply_id = id;
@@ -767,7 +778,7 @@ WindowBuilder.prototype._upsertSprite = function _upsertSprite (id, parent, para
         sprite = factory();
     }
 
-    var p = this._parseParams(null, params);
+    var p = this._parseParams(params);
     this._applyBasicParams(sprite, p);
 
     sprite._liply_id = id;
@@ -818,13 +829,13 @@ WindowBuilder.prototype._upsertWidget = function _upsertWidget (id, parent, para
     var parentWindow = this._sprites[parent];
     if(parentWindow.findWidget(id)){
         var widget = parentWindow.findWidget(id);
-        var newWidget = this._parseParams(parentWindow, params);
+        var newWidget = this._parseParams(params);
         Object.keys(newWidget)
             .forEach(function (key){ return widget[key] = newWidget[key]; });
         widget.dirty = true;
         modifier(widget);
     }else{
-        var widget$1 = this._parseParams(parentWindow, params);
+        var widget$1 = this._parseParams(params);
         widget$1.id = id;
         modifier(widget$1);
 
@@ -846,35 +857,58 @@ WindowBuilder.prototype._applyBasicParams = function _applyBasicParams (w, p){
         { w.visible = p.visible; }
 };
 
-WindowBuilder.prototype._parseParams = function _parseParams (window, params){
+WindowBuilder.prototype._parseParams = function _parseParams (params){
         var this$1 = this;
 
     var result = {};
 
-    for(var n = 0; n < params.length; n+=2){
-        var type = params[n];
-        result[type] = this$1._convertUnit(window, params[n + 1]);
+    if(params instanceof Array){
+        for(var n = 0; n < params.length; n+=2){
+            var type = params[n];
+            result[type] = this$1._convertUnit(params[n + 1]);
+        }
+    }else{
+        Object.keys(params).forEach(function (key){
+            result[key] = this$1._convertUnit(params[key]);
+        });
     }
 
     return result;
 };
 
-WindowBuilder.prototype._convertUnit = function _convertUnit (window, value){
-    value = this._resolveReference(value);
+WindowBuilder.prototype._extractUnit = function _extractUnit (value){
+    var match = /([\d\.]+)([a-zA-Z]+)/.exec(value);
+    if(match) { return {value: +match[1], unit: match[2]}; }
+    return {value: +value};
+};
 
-    if(contains(value, 'line')){
-        return +value.slice(0, -4) * window.lineHeight();
-    }
-    if(contains(value, 'fit')){
-        return window.fittingHeight(+value.slice(0, -3));
-    }
+WindowBuilder.prototype._convertUnit = function _convertUnit (rawValue){
+    rawValue = this._resolveReference(rawValue);
+    var ref = this._extractUnit(rawValue);
+        var value = ref.value;
+        var unit = ref.unit;
 
-    return +value;
+    switch(unit){
+        case 'column':
+            return Graphics.width / parameters$1.column * value;
+        case 'row':
+            return Graphics.height / parameters$1.row * value;
+        case 'vw':
+            return Graphics.width * (value / 100);
+        case 'vh':
+            return Graphics.height * (value / 100);
+        case 'bw':
+            return Graphics.boxWidth * (value / 100);
+        case 'bh':
+            return Graphics.boxHeight * (value / 100);
+        default:
+            return value;
+    }
 };
 
 WindowBuilder.prototype._resolveReference = function _resolveReference (value){
     var match;
-    var expVariable = /\\V\[(\d)\]/;
+    var expVariable = /\\V\[(\d)\][a-zA-Z]+/;
     if(match = expVariable.exec(value)){
         return value.replace(expVariable, $gameVariables.value(+match[1]));
     }

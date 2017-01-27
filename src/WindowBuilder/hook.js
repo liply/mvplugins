@@ -73,3 +73,7 @@ wrapPrototype(Scene_Map, 'createDisplayObjects', old=>function(){
     old.call(this);
     this.addChild(this._liply_windowBuilder.getStage());
 });
+
+SceneManager.getWindowBuilder = function(){
+    return getCurrentBuilder();
+};
