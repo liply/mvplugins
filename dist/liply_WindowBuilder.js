@@ -654,9 +654,13 @@ var BaseSprite = (function (Sprite) {
             if(this._bitmapVisible !== undefined)
                 { this.visible = this._bitmapVisible; }
 
-            if(this._bitmapName)
-                { this.bitmap = ImageManager.loadPicture(this._bitmapName); }
+            this._activateHook();
         }
+    };
+
+    BaseSprite.prototype._activateHook = function _activateHook (){
+        if(this._bitmapName)
+            { this.bitmap = ImageManager.loadPicture(this._bitmapName); }
     };
 
     return BaseSprite;
@@ -691,6 +695,10 @@ var LabelSprite = (function (BaseSprite$$1) {
         data.type = 'LabelSprite';
 
         return data;
+    };
+
+    LabelSprite.prototype._activateHook = function _activateHook (){
+        this.setText(this._text);
     };
 
     return LabelSprite;

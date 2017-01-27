@@ -25,9 +25,7 @@ export default class LabelSprite extends BaseSprite {
         return data;
     }
 
-    _activateBitmap(){
-        super._activateBitmap();
-
-        if(this.isBitmapActive())this.setText(this._text);
+    _activateHook(){
+        this.setText(this._text);
     }
 }

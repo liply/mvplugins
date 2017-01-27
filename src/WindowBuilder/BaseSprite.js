@@ -68,9 +68,13 @@ export default class BaseSprite extends Sprite{
             if(this._bitmapVisible !== undefined)
                 this.visible = this._bitmapVisible;
 
-            if(this._bitmapName)
-                this.bitmap = ImageManager.loadPicture(this._bitmapName)
+            this._activateHook();
         }
+    }
+
+    _activateHook(){
+        if(this._bitmapName)
+            this.bitmap = ImageManager.loadPicture(this._bitmapName)
     }
 }
 
