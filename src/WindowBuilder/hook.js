@@ -1,5 +1,10 @@
 import {registerPluginCommands, wrapPrototype, wrapStatic} from '../lib/util.js'
 import WindowBuilder from './WindowBuilder.js'
+import PersistentField from '../lib/PersistentField.js'
+import parameters from './params.js'
+
+let field = new PersistentField(parameters.PLUGIN_NAME);
+field.register('uiMode', false);
 
 function getCurrentBuilder(){
     return SceneManager._scene._liply_windowBuilder;
@@ -30,8 +35,12 @@ registerPluginCommands({
         getCurrentBuilder().animate(id, params);
     },
 
-    setTrigger(id, commonId){
-        getCurrentBuilder().setOnTriggerHandler(id, commonId);
+    uiMode(mode){
+        field.uiMode = mode.toLowerCase() === 'on';
+    },
+
+    setTrigger(id, name){
+        getCurrentBuilder().setOnTriggerHandler(id, name);
     },
 
     removeTrigger(id){
@@ -54,6 +63,28 @@ function findCommonEventIdByName(name){
 
     return id;
 }
+
+wrapPrototype(Game_Player, 'update', old=>function(active){
+    if(field.uiMode){
+        old.call(this, false)
+    }else{
+        old.call(this, active);
+    }
+});
+
+wrapPrototype(Game_Timer, 'update', old=>function(active){
+    if(field.uiMode){
+        old.call(this, false)
+    }else{
+        old.call(this, active);
+    }
+});
+
+wrapPrototype(Game_CharacterBase, 'update', old=>function(){
+    if(!field.uiMode){
+        old.call(this);
+    }
+});
 
 
 wrapPrototype(Scene_Map, 'create', old=>function(){

@@ -1106,6 +1106,30 @@ WindowBuilder.prototype.load = function load (data){
     });
 };
 
+var PersistentField = function PersistentField(prefix){
+    this._prefix = prefix;
+};
+
+PersistentField.prototype.register = function register (name, defaultValue){
+    var key = this._prefix + '_' + name;
+
+    Object.defineProperty(this, name, {
+        set: function set(newValue){
+            $gameSystem[key] = newValue;
+        },
+        get: function get(){
+            if($gameSystem[key] === undefined){
+                $gameSystem[key] = defaultValue;
+            }
+
+            return $gameSystem[key];
+        }
+    });
+};
+
+var field = new PersistentField(parameters$1.PLUGIN_NAME);
+field.register('uiMode', false);
+
 function getCurrentBuilder(){
     return SceneManager._scene._liply_windowBuilder;
 }
@@ -1150,8 +1174,12 @@ registerPluginCommands({
         getCurrentBuilder().animate(id, params);
     },
 
-    setTrigger: function setTrigger(id, commonId){
-        getCurrentBuilder().setOnTriggerHandler(id, commonId);
+    uiMode: function uiMode(mode){
+        field.uiMode = mode.toLowerCase() === 'on';
+    },
+
+    setTrigger: function setTrigger(id, name){
+        getCurrentBuilder().setOnTriggerHandler(id, name);
     },
 
     removeTrigger: function removeTrigger(id){
@@ -1174,6 +1202,28 @@ function findCommonEventIdByName(name){
 
     return id;
 }
+
+wrapPrototype(Game_Player, 'update', function (old){ return function(active){
+    if(field.uiMode){
+        old.call(this, false);
+    }else{
+        old.call(this, active);
+    }
+}; });
+
+wrapPrototype(Game_Timer, 'update', function (old){ return function(active){
+    if(field.uiMode){
+        old.call(this, false);
+    }else{
+        old.call(this, active);
+    }
+}; });
+
+wrapPrototype(Game_CharacterBase, 'update', function (old){ return function(){
+    if(!field.uiMode){
+        old.call(this);
+    }
+}; });
 
 
 wrapPrototype(Scene_Map, 'create', function (old){ return function(){
