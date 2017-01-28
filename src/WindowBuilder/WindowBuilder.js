@@ -26,11 +26,13 @@ export default class WindowBuilder{
 
     getIdUnder(x, y){
         let point = new PIXI.Point(x, y);
-        let id;
+        return this._getIdUnder(this._stage, null, point);
+    }
 
-        this._order.forEach(key=>{
-            id = this._sprites[key].getIdUnder(point) || id;
-        });
+    _getIdUnder(target, id, point){
+        id = target.getIdUnder && (target.getIdUnder(point) || id);
+        target.children
+            .forEach(child=>(id = this._getIdUnder(child, id, point) || id));
 
         return id;
     }

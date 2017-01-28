@@ -794,14 +794,16 @@ WindowBuilder.prototype.removeOnTriggerHandler = function removeOnTriggerHandler
 };
 
 WindowBuilder.prototype.getIdUnder = function getIdUnder (x, y){
+    var point = new PIXI.Point(x, y);
+    return this._getIdUnder(this._stage, null, point);
+};
+
+WindowBuilder.prototype._getIdUnder = function _getIdUnder (target, id, point){
         var this$1 = this;
 
-    var point = new PIXI.Point(x, y);
-    var id;
-
-    this._order.forEach(function (key){
-        id = this$1._sprites[key].getIdUnder(point) || id;
-    });
+    id = target.getIdUnder && (target.getIdUnder(point) || id);
+    target.children
+        .forEach(function (child){ return (id = this$1._getIdUnder(child, id, point) || id); });
 
     return id;
 };
