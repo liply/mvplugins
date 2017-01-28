@@ -41,6 +41,40 @@ function wrapPrototype(klass, method, fn){
 
 
 
+function find(array, predicate, context) {
+/*
+ The MIT License
+ Copyright (c) Stefan Duberg
+ https://github.com/stefanduberg/array-find
+ */
+
+    // if (typeof Array.prototype.find === 'function') {
+    //     return array.find(predicate, context);
+    // }
+
+    context = context || this;
+    var length = array.length;
+    var i;
+
+    if (typeof predicate !== 'function') {
+        throw new TypeError(predicate + ' is not a function');
+    }
+
+    for (i = 0; i < length; i++) {
+        if (predicate.call(context, array[i], i, array)) {
+            return array[i];
+        }
+    }
+}
+
+function installArrayFind(){
+    if(!Array.prototype.find){
+        Array.prototype.find = function(predicate, context){
+            find(this, predicate, context);
+        };
+    }
+}
+
 /*
  object-assign
  (c) Sindre Sorhus
@@ -104,34 +138,36 @@ function shouldUseNative() {
     }
 }
 
-Object.assign = shouldUseNative() ? Object.assign : function (target, source) {
-        var arguments$1 = arguments;
+function installObjectAssign(){
+    Object.assign = shouldUseNative() ? Object.assign : function (target, source) {
+            var arguments$1 = arguments;
 
-        var from;
-        var to = toObject(target);
-        var symbols;
+            var from;
+            var to = toObject(target);
+            var symbols;
 
-        for (var s = 1; s < arguments.length; s++) {
-            from = Object(arguments$1[s]);
+            for (var s = 1; s < arguments.length; s++) {
+                from = Object(arguments$1[s]);
 
-            for (var key in from) {
-                if (hasOwnProperty.call(from, key)) {
-                    to[key] = from[key];
+                for (var key in from) {
+                    if (hasOwnProperty.call(from, key)) {
+                        to[key] = from[key];
+                    }
                 }
-            }
 
-            if (getOwnPropertySymbols) {
-                symbols = getOwnPropertySymbols(from);
-                for (var i = 0; i < symbols.length; i++) {
-                    if (propIsEnumerable.call(from, symbols[i])) {
-                        to[symbols[i]] = from[symbols[i]];
+                if (getOwnPropertySymbols) {
+                    symbols = getOwnPropertySymbols(from);
+                    for (var i = 0; i < symbols.length; i++) {
+                        if (propIsEnumerable.call(from, symbols[i])) {
+                            to[symbols[i]] = from[symbols[i]];
+                        }
                     }
                 }
             }
-        }
 
-        return to;
-    };
+            return to;
+        };
+}
 
 // inspired by react-motion
 // https://github.com/chenglou/react-motion
@@ -1123,6 +1159,22 @@ registerPluginCommands({
     }
 });
 
+function findEventByName(name){
+    return $gameMap.events().find(function (ev){ return (ev && (ev.event().name === name)); });
+}
+
+function findCommonEventIdByName(name){
+    var id;
+    $dataCommonEvents.find(function (ev, idx){
+        if(ev && (ev.name === name)){
+            id = idx;
+            return true;
+        }
+    });
+
+    return id;
+}
+
 
 wrapPrototype(Scene_Map, 'create', function (old){ return function(){
     this._liply_windowBuilder = new WindowBuilder();
@@ -1144,9 +1196,15 @@ wrapPrototype(Scene_Map, 'update', function (old){ return function(){
     this._liply_windowBuilder.update();
 
     if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
-        var commonId = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
-        if(commonId){
-            $gameTemp.reserveCommonEvent(commonId);
+        var name = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
+        var event = findEventByName(name);
+        if(event){
+            event.start();
+        }else{
+            var id = findCommonEventIdByName(name);
+            if(id){
+                $gameTemp.reserveCommonEvent(id);
+            }
         }
     }
 
@@ -1161,5 +1219,8 @@ wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function
 SceneManager.getWindowBuilder = function(){
     return getCurrentBuilder();
 };
+
+installArrayFind();
+installObjectAssign();
 
 }());

@@ -4,7 +4,6 @@ export default {
     entry: 'src/PictureExtension/index.js',
     dest: 'dist/liply_PictureExtension.js',
     plugins: [ buble({
-        objectAssign: 'Object.assign'
     }) ],
     format: 'iife'
 };

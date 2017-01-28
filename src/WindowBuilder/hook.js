@@ -39,6 +39,22 @@ registerPluginCommands({
     }
 });
 
+function findEventByName(name){
+    return $gameMap.events().find(ev=>(ev && (ev.event().name === name)));
+}
+
+function findCommonEventIdByName(name){
+    let id;
+    $dataCommonEvents.find((ev, idx)=>{
+        if(ev && (ev.name === name)){
+            id = idx;
+            return true;
+        }
+    });
+
+    return id;
+}
+
 
 wrapPrototype(Scene_Map, 'create', old=>function(){
     this._liply_windowBuilder = new WindowBuilder();
@@ -60,9 +76,15 @@ wrapPrototype(Scene_Map, 'update', old=>function(){
     this._liply_windowBuilder.update();
 
     if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
-        let commonId = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
-        if(commonId){
-            $gameTemp.reserveCommonEvent(commonId);
+        const name = this._liply_windowBuilder.getOnTriggerHandler(TouchInput.x, TouchInput.y);
+        const event = findEventByName(name);
+        if(event){
+            event.start();
+        }else{
+            const id = findCommonEventIdByName(name);
+            if(id){
+                $gameTemp.reserveCommonEvent(id);
+            }
         }
     }
 
