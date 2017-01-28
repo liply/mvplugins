@@ -6,9 +6,11 @@
   "scripts": {
     "compile:picture": "rollup -c rollup.picture.js",
     "compile:builder": "rollup -c rollup.builder.js",
+    "test:builder": "rollup -c rollup.builder.test.js -w",
     "compile": "run-p compile:*",
     "copy": "cp-cli ./dist/ ./game/js/plugins/",
-    "test": "run-s compile copy"
+    "test": "run-s compile copy",
+    "start": "http-server game"
   },
   "repository": {
     "type": "git",
@@ -22,8 +24,11 @@
   "homepage": "https://github.com/liply/mvplugins#readme",
   "devDependencies": {
     "cp-cli": "^1.0.2",
+    "flow-bin": "^0.38.0",
     "npm-run-all": "^4.0.1",
     "rollup": "^0.41.4",
-    "rollup-plugin-buble": "^0.15.0"
+    "rollup-plugin-buble": "^0.15.0",
+    "rollup-plugin-flow": "^1.1.1",
+    "rollup-watch": "^3.2.2"
   }
 }

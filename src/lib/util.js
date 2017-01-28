@@ -15,6 +15,15 @@ export function convertEscapeCharacters(text){
     return miniWindow.convertEscapeCharacters(text);
 }
 
+export function arr2obj(params){
+    let result = {};
+    for(let n = 0; n < params.length; n+=2){
+        result[params[n]] = params[n+1];
+    }
+
+    return result;
+}
+
 export function registerPluginCommands(commands){
     let lowerCaseCommands = {};
     Object.keys(commands).forEach((name)=>{
@@ -46,37 +55,29 @@ export function wrapStatic(klass, method, fn){
     klass[method] = newMethod;
 }
 
-function find(array, predicate, context) {
-/*
- The MIT License
- Copyright (c) Stefan Duberg
- https://github.com/stefanduberg/array-find
- */
-
-    // if (typeof Array.prototype.find === 'function') {
-    //     return array.find(predicate, context);
-    // }
-
-    context = context || this;
-    var length = array.length;
-    var i;
-
-    if (typeof predicate !== 'function') {
-        throw new TypeError(predicate + ' is not a function');
-    }
-
-    for (i = 0; i < length; i++) {
-        if (predicate.call(context, array[i], i, array)) {
-            return array[i];
-        }
-    }
-}
-
 export function installArrayFind(){
-    if(!Array.prototype.find){
-        Array.prototype.find = function(predicate, context){
-            find(this, predicate, context);
-        }
+    // https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array/find
+    if (!Array.prototype.find) {
+        Array.prototype.find = function(predicate) {
+            if (this === null) {
+                throw new TypeError('Array.prototype.find called on null or undefined');
+            }
+            if (typeof predicate !== 'function') {
+                throw new TypeError('predicate must be a function');
+            }
+            var list = Object(this);
+            var length = list.length >>> 0;
+            var thisArg = arguments[1];
+            var value;
+
+            for (var i = 0; i < length; i++) {
+                value = list[i];
+                if (predicate.call(thisArg, value, i, list)) {
+                    return value;
+                }
+            }
+            return undefined;
+        };
     }
 }
 
