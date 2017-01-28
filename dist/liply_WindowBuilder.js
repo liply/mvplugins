@@ -593,7 +593,7 @@ var BaseSprite = (function (Sprite) {
 
             if(data.bitmapName){
                 this._bitmapName = data.bitmapName;
-                this.bitmap = ImageManager.loadPicture(data.bitmapName);
+                this._markContentDirty();
             }
         }
     }
@@ -625,6 +625,9 @@ var BaseSprite = (function (Sprite) {
 
         if(isInsideScreen(this)) { this._activateBitmap(); }
         else { this._deactivateBitmap(); }
+        if(this.isBitmapActive() && this._contentDirty){
+            this._refreshContent();
+        }
 
         Sprite.prototype.update.call(this);
     };
@@ -654,11 +657,20 @@ var BaseSprite = (function (Sprite) {
             if(this._bitmapVisible !== undefined)
                 { this.visible = this._bitmapVisible; }
 
-            this._activateHook();
+            this._markContentDirty();
         }
     };
 
-    BaseSprite.prototype._activateHook = function _activateHook (){
+    BaseSprite.prototype._markContentDirty = function _markContentDirty (){
+        this._contentDirty = true;
+    };
+
+    BaseSprite.prototype._refreshContent = function _refreshContent (){
+        this._contentDirty = false;
+        this._refreshContentHook();
+    };
+
+    BaseSprite.prototype._refreshContentHook = function _refreshContentHook (){
         if(this._bitmapName)
             { this.bitmap = ImageManager.loadPicture(this._bitmapName); }
     };
@@ -672,8 +684,9 @@ var LabelSprite = (function (BaseSprite$$1) {
     function LabelSprite(id, data){
         BaseSprite$$1.call(this, id, data);
 
-        if(data && data.text){
-            this.setText(data.text);
+        if(data){
+            this._text = data.text;
+            this._align = data.align;
         }
     }
 
@@ -683,10 +696,6 @@ var LabelSprite = (function (BaseSprite$$1) {
 
     LabelSprite.prototype.setText = function setText (text) {
         this._text = text;
-
-        var content = new Bitmap(this.width, this.height);
-        content.drawText(text, 0, 0, this.width, this.height, this.align);
-        this.bitmap = content;
     };
 
     LabelSprite.prototype.save = function save (){
@@ -697,8 +706,12 @@ var LabelSprite = (function (BaseSprite$$1) {
         return data;
     };
 
-    LabelSprite.prototype._activateHook = function _activateHook (){
-        this.setText(this._text);
+    LabelSprite.prototype._refreshContentHook = function _refreshContentHook (){
+        if(this._text){
+            var content = new Bitmap(this.width, this.height);
+            content.drawText(this._text, 0, 0, this.width, this.height, this._align);
+            this.bitmap = content;
+        }
     };
 
     return LabelSprite;

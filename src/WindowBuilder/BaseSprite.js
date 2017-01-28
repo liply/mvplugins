@@ -11,7 +11,7 @@ export default class BaseSprite extends Sprite{
 
             if(data.bitmapName){
                 this._bitmapName = data.bitmapName;
-                this.bitmap = ImageManager.loadPicture(data.bitmapName);
+                this._markContentDirty();
             }
         }
     }
@@ -39,6 +39,9 @@ export default class BaseSprite extends Sprite{
 
         if(isInsideScreen(this)) this._activateBitmap();
         else this._deactivateBitmap();
+        if(this.isBitmapActive() && this._contentDirty){
+            this._refreshContent();
+        }
 
         super.update();
     }
@@ -68,11 +71,20 @@ export default class BaseSprite extends Sprite{
             if(this._bitmapVisible !== undefined)
                 this.visible = this._bitmapVisible;
 
-            this._activateHook();
+            this._markContentDirty();
         }
     }
 
-    _activateHook(){
+    _markContentDirty(){
+        this._contentDirty = true;
+    }
+
+    _refreshContent(){
+        this._contentDirty = false;
+        this._refreshContentHook();
+    }
+
+    _refreshContentHook(){
         if(this._bitmapName)
             this.bitmap = ImageManager.loadPicture(this._bitmapName)
     }
