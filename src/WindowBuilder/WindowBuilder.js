@@ -237,7 +237,7 @@ export default class WindowBuilder{
     }
 
     _extractUnit(value){
-        const match = /([\d\.]+)([a-zA-Z]+)/.exec(value);
+        const match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
         if(match) return {value: +match[1], unit: match[2]};
         return {value: +value};
     }
@@ -259,6 +259,8 @@ export default class WindowBuilder{
                 return Graphics.boxWidth * (value / 100);
             case 'bh':
                 return Graphics.boxHeight * (value / 100);
+            case '%':
+                return value / 100;
             default:
                 return value;
         }

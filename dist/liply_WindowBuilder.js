@@ -973,7 +973,7 @@ WindowBuilder.prototype._parseParams = function _parseParams (params){
 };
 
 WindowBuilder.prototype._extractUnit = function _extractUnit (value){
-    var match = /([\d\.]+)([a-zA-Z]+)/.exec(value);
+    var match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
     if(match) { return {value: +match[1], unit: match[2]}; }
     return {value: +value};
 };
@@ -997,6 +997,8 @@ WindowBuilder.prototype._convertUnit = function _convertUnit (rawValue){
             return Graphics.boxWidth * (value / 100);
         case 'bh':
             return Graphics.boxHeight * (value / 100);
+        case '%':
+            return value / 100;
         default:
             return value;
     }
