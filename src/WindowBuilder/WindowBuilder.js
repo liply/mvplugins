@@ -2,6 +2,7 @@ import BaseWindow from './BaseWindow.js'
 import BaseSprite from './BaseSprite.js'
 import LabelSprite from './LabelSprite.js'
 import parameters from './params.js'
+import {convertEscapeCharacters} from '../lib/util.js'
 
 export default class WindowBuilder{
     constructor() {
@@ -243,7 +244,7 @@ export default class WindowBuilder{
     }
 
     _convertUnit(rawValue){
-        rawValue = this._resolveReference(rawValue);
+        rawValue = convertEscapeCharacters(rawValue);
         let {value, unit} = this._extractUnit(rawValue);
 
         switch(unit){
@@ -264,16 +265,6 @@ export default class WindowBuilder{
             default:
                 return value;
         }
-    }
-
-    _resolveReference(value){
-        let match;
-        let expVariable = /\\V\[(\d)\][a-zA-Z]+/;
-        if(match = expVariable.exec(value)){
-            return value.replace(expVariable, $gameVariables.value(+match[1]));
-        }
-
-        return value;
     }
 
     save(){

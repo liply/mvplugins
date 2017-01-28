@@ -15,6 +15,18 @@
  *
  */
 
+function MiniWindow(){
+    this.convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
+    this.actorName = Window_Base.prototype.actorName;
+    this.partyMemberName = Window_Base.prototype.partyMemberName;
+}
+
+var miniWindow = new MiniWindow();
+
+function convertEscapeCharacters(text){
+    return miniWindow.convertEscapeCharacters(text);
+}
+
 function registerPluginCommands(commands){
     var lowerCaseCommands = {};
     Object.keys(commands).forEach(function (name){
@@ -1015,7 +1027,7 @@ WindowBuilder.prototype._extractUnit = function _extractUnit (value){
 };
 
 WindowBuilder.prototype._convertUnit = function _convertUnit (rawValue){
-    rawValue = this._resolveReference(rawValue);
+    rawValue = convertEscapeCharacters(rawValue);
     var ref = this._extractUnit(rawValue);
         var value = ref.value;
         var unit = ref.unit;
@@ -1038,16 +1050,6 @@ WindowBuilder.prototype._convertUnit = function _convertUnit (rawValue){
         default:
             return value;
     }
-};
-
-WindowBuilder.prototype._resolveReference = function _resolveReference (value){
-    var match;
-    var expVariable = /\\V\[(\d)\][a-zA-Z]+/;
-    if(match = expVariable.exec(value)){
-        return value.replace(expVariable, $gameVariables.value(+match[1]));
-    }
-
-    return value;
 };
 
 WindowBuilder.prototype.save = function save (){

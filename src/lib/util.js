@@ -3,6 +3,18 @@ export function contains(str, value){
     return str.indexOf(value) !== -1;
 }
 
+function MiniWindow(){
+    this.convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
+    this.actorName = Window_Base.prototype.actorName;
+    this.partyMemberName = Window_Base.prototype.partyMemberName;
+}
+
+let miniWindow = new MiniWindow();
+
+export function convertEscapeCharacters(text){
+    return miniWindow.convertEscapeCharacters(text);
+}
+
 export function registerPluginCommands(commands){
     let lowerCaseCommands = {};
     Object.keys(commands).forEach((name)=>{
