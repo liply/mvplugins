@@ -109,25 +109,21 @@ export default class ComponentManager{
         let result = {};
         if(!removeDefault) fillDefaultParams(result);
         Object.keys(params).forEach(key=>{
-            if(IGNORE.indexOf(key) === -1){
-                result[key] = this._convertUnit(params[key]);
-            }else{
-                result[key] = params[key];
-            }
+            result[key] = this._convertUnit(params[key]);
         });
 
         return result;
     }
 
-    _extractUnit(value: string){
-        const match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
+    _extractUnit(value: string): Object{
+        const match = /^([\d\.]+)([a-zA-Z%]+)$/.exec(value);
         if(match) return {value: +match[1], unit: match[2]};
-        return {value: +value, unit: ''};
+        return {value: +value, raw: value, unit: ''};
     }
 
     _convertUnit(rawValue: string){
         rawValue = convertEscapeCharacters(rawValue);
-        let {value, unit} = this._extractUnit(rawValue);
+        let {value, unit, raw} = this._extractUnit(rawValue);
 
         switch(unit){
             case 'column':
@@ -145,7 +141,7 @@ export default class ComponentManager{
             case '%':
                 return value / 100;
             default:
-                return value;
+                return isNaN(value)? raw: value;
         }
     }
 

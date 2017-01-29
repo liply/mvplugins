@@ -666,8 +666,6 @@ var parameters$1 = {
 
                                                             
 
-var IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
-
 var ComponentManager = function ComponentManager(){
     this._stage = new SpriteComponent();
     this.clear();
@@ -741,20 +739,16 @@ ComponentManager.prototype._convertNumbers = function _convertNumbers (params   
     var result = {};
     if(!removeDefault) { fillDefaultParams(result); }
     Object.keys(params).forEach(function (key){
-        if(IGNORE.indexOf(key) === -1){
-            result[key] = this$1._convertUnit(params[key]);
-        }else{
-            result[key] = params[key];
-        }
+        result[key] = this$1._convertUnit(params[key]);
     });
 
     return result;
 };
 
-ComponentManager.prototype._extractUnit = function _extractUnit (value    ){
-    var match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
+ComponentManager.prototype._extractUnit = function _extractUnit (value    )    {
+    var match = /^([\d\.]+)([a-zA-Z%]+)$/.exec(value);
     if(match) { return {value: +match[1], unit: match[2]}; }
-    return {value: +value, unit: ''};
+    return {value: +value, raw: value, unit: ''};
 };
 
 ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
@@ -762,6 +756,7 @@ ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
     var ref = this._extractUnit(rawValue);
         var value = ref.value;
         var unit = ref.unit;
+        var raw = ref.raw;
 
     switch(unit){
         case 'column':
@@ -779,7 +774,7 @@ ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
         case '%':
             return value / 100;
         default:
-            return value;
+            return isNaN(value)? raw: value;
     }
 };
 
