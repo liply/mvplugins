@@ -1,12 +1,12 @@
 // @flow
 
-import type {SpriteType, NodeType} from './ComponentTypes.js'
-import {isInsideScreen} from './SpriteUtil.js'
+import type {BaseSpriteType, NodeType} from './ComponentTypes.js'
+import {isInsideScreen, assignParameters} from './SpriteUtil.js'
 
 declare var Sprite;
 
 export default class SpriteComponent extends Sprite{
-    _type: SpriteType;
+    _type: BaseSpriteType;
     _contentDirty: boolean;
 
     get anchorX(): number{
@@ -25,23 +25,23 @@ export default class SpriteComponent extends Sprite{
         this.anchor.y = value;
     }
 
-    constructor(type: ?SpriteType, parent: ?NodeType){
+    constructor(type: ?BaseSpriteType, parent: ?NodeType){
         super();
 
         if(type)this._type = type;
-        this.markDirty();
+        this.markContentDirty();
         if(parent) parent.addChild(this);
     }
 
     update(){
-        if(this._type) Object.keys(this._type).forEach(key=>this[key] = this._type[key]);
+        if(this._type) assignParameters(this, this._type);
 
         if(isInsideScreen(this)) this._activateContent();
         else this._deactivateContent();
 
         if(this._isContentActive && this._contentDirty){
-            this._refreshContent();
             this._contentDirty = false;
+            this._refreshContent();
         }
 
         super.update();
@@ -49,10 +49,10 @@ export default class SpriteComponent extends Sprite{
 
     _activateContent(){
         if(!this._isContentActive){
-            this._refreshContent();
-
             this._isContentActive = true;
             this._contentDirty = false;
+
+            this._refreshContent();
         }
     }
 
@@ -64,7 +64,7 @@ export default class SpriteComponent extends Sprite{
         }
     }
 
-    markDirty(){
+    markContentDirty(){
         this._contentDirty = true;
     }
 

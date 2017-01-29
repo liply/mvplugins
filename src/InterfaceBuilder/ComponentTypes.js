@@ -1,5 +1,7 @@
 // @flow
 
+import type {RenderingCommands} from './RenderingCommands.js'
+
 export interface Base{
     id: string;
     parentId: string;
@@ -42,10 +44,16 @@ export interface TextType extends BaseSpriteType{
 
 export interface WindowType extends Base{
     type: 'Window';
+    commands: Array<RenderingCommands>;
+}
+
+export interface CanvasType extends BaseSpriteType{
+    type: 'Canvas';
+    commands: Array<RenderingCommands>;
 }
 
 export interface SpriteType extends BaseSpriteType{
     type: 'Sprite';
 }
 
-export type Any = BaseSpriteType | ContainerType | PictureType | TextType | WindowType | SpriteType;
+export type Any = ContainerType | PictureType | TextType | WindowType | SpriteType | CanvasType;

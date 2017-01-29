@@ -8,3 +8,9 @@ export function isInsideScreen(sprite){
         b.y + b.height >= 0 &&
         b.y <= gh;
 }
+
+export function assignParameters(target, params){
+    Object.keys(params).forEach(key=>{
+        if(target[key] !== params[key])target[key] = params[key];
+    })
+}

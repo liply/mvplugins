@@ -12,7 +12,7 @@ export default class LabelComponent extends SpriteComponent{
     }
     set text(value: string){
         if(this._text !== value){
-            this.markDirty();
+            this.markContentDirty();
             this._text = value;
         }
     }

@@ -193,9 +193,83 @@ function isInsideScreen(sprite){
         b.y <= gh;
 }
 
+function assignParameters(target, params){
+    Object.keys(params).forEach(function (key){
+        if(target[key] !== params[key]){ target[key] = params[key]; }
+    });
+}
+
+//      
+
+                   
+                         
+
+                              
+              
+              
+                   
+                    
+ 
+
+                                                     
+                    
+                    
+ 
+
+                                                   
+                 
+                   
+                  
+ 
+
+                                                              
+
+function renderCommands(target        , commands                          ){
+    if(!commands){ return true; }
+
+    var bitmaps = {};
+    var notReady = false;
+    commands.forEach(function (command){
+        switch(command.type){
+            case 'picture':
+                var bitmap = ImageManager.loadPicture(command.picture);
+                notReady = !bitmap.isReady() || notReady;
+                bitmaps[command.picture] = bitmap;
+        }
+    });
+
+    if(notReady){ return false; }
+
+    target.clear();
+    commands.forEach(function (command){
+        switch(command.type){
+            case 'picture':
+                var bitmap = bitmaps[command.picture];
+                target.blt(
+                    bitmap, 0, 0, bitmap.width, bitmap.height,
+                    command.x, command.y,
+                    command.width || bitmap.width,
+                    command.height || bitmap.height
+                    );
+                break;
+
+            case 'label':
+                target.drawText(command.text, command.x, command.y,
+                    command.width || target.measureTextWidth(command.text),
+                    command.height || target.fontSize,
+                    command.align
+                );
+                break;
+        }
+    });
+
+    return true;
+}
+
 //      
 
                                                              
+
 var WindowComponent = (function (Window_Base) {
     function WindowComponent(type            , parent          ){
         Window_Base.call(this);
@@ -212,9 +286,7 @@ var WindowComponent = (function (Window_Base) {
     WindowComponent.prototype.constructor = WindowComponent;
 
     WindowComponent.prototype._assignTypeParameters = function _assignTypeParameters (){
-        var this$1 = this;
-
-        Object.keys(this._type).forEach(function (key){ return this$1[key] = this$1._type[key]; });
+        assignParameters(this, this._type);
     };
 
     WindowComponent.prototype.update = function update (){
@@ -223,21 +295,33 @@ var WindowComponent = (function (Window_Base) {
         if(isInsideScreen(this)) { this._activateContent(); }
         else { this._deactivateContent(); }
 
-
-        if(ImageManager.isReady() && this._needsContentRefresh()){
+        if(this._needContentRefresh()){
             this._refreshContent();
         }
 
         Window_Base.prototype.update.call(this);
     };
 
-    WindowComponent.prototype._needsContentRefresh = function _needsContentRefresh (){
+    WindowComponent.prototype._needContentRefresh = function _needContentRefresh (){
         if(!this.isContentActive()) { return false; }
-        return !this.contents || this.contents.width !== this.width || this.contents.height !== this.height;
+        return !this._contentReady || !this.contents || this._needResize();
+    };
+
+    WindowComponent.prototype._needResize = function _needResize (){
+        return this.contents.width !== this.width || this.contents.height !== this.height;
     };
 
     WindowComponent.prototype._refreshContent = function _refreshContent (){
-        this.contents = new Bitmap(this.width, this.height);
+        if(this._needResize()){
+            this.contents = new Bitmap(this.width, this.height);
+            this._contentReady = false;
+        }
+
+        if(this.contents && !this._contentReady){
+            if(renderCommands(this.contents, this._type.commands)){
+                this._contentReady = true;
+            }
+        }
     };
 
     WindowComponent.prototype.containsPoint = function containsPoint (point                        ){
@@ -270,6 +354,10 @@ var WindowComponent = (function (Window_Base) {
         return this._contentActive;
     };
 
+    WindowComponent.prototype.markContentDirty = function markContentDirty (){
+        this._contentReady = false;
+    };
+
     WindowComponent.prototype._activateContent = function _activateContent () {
         if (!this._contentActive) {
             this._contentActive = true;
@@ -286,13 +374,13 @@ var WindowComponent = (function (Window_Base) {
 
 //      
 
-                                                             
+                                                                 
 var SpriteComponent = (function (Sprite) {
-    function SpriteComponent(type             , parent           ){
+    function SpriteComponent(type                 , parent           ){
         Sprite.call(this);
 
         if(type){ this._type = type; }
-        this.markDirty();
+        this.markContentDirty();
         if(parent) { parent.addChild(this); }
     }
 
@@ -319,16 +407,14 @@ var SpriteComponent = (function (Sprite) {
     };
 
     SpriteComponent.prototype.update = function update (){
-        var this$1 = this;
-
-        if(this._type) { Object.keys(this._type).forEach(function (key){ return this$1[key] = this$1._type[key]; }); }
+        if(this._type) { assignParameters(this, this._type); }
 
         if(isInsideScreen(this)) { this._activateContent(); }
         else { this._deactivateContent(); }
 
         if(this._isContentActive && this._contentDirty){
-            this._refreshContent();
             this._contentDirty = false;
+            this._refreshContent();
         }
 
         Sprite.prototype.update.call(this);
@@ -336,10 +422,10 @@ var SpriteComponent = (function (Sprite) {
 
     SpriteComponent.prototype._activateContent = function _activateContent (){
         if(!this._isContentActive){
-            this._refreshContent();
-
             this._isContentActive = true;
             this._contentDirty = false;
+
+            this._refreshContent();
         }
     };
 
@@ -351,7 +437,7 @@ var SpriteComponent = (function (Sprite) {
         }
     };
 
-    SpriteComponent.prototype.markDirty = function markDirty (){
+    SpriteComponent.prototype.markContentDirty = function markContentDirty (){
         this._contentDirty = true;
     };
 
@@ -380,7 +466,7 @@ var LabelComponent = (function (SpriteComponent$$1) {
     };
     prototypeAccessors.text.set = function (value        ){
         if(this._text !== value){
-            this.markDirty();
+            this.markContentDirty();
             this._text = value;
         }
     };
@@ -414,7 +500,7 @@ var PictureComponent = (function (SpriteComponent$$1) {
     };
     prototypeAccessors.picture.set = function (value        ){
         if(this._picture !== value){
-            this.markDirty();
+            this.markContentDirty();
             this._picture = value;
         }
     };
@@ -534,7 +620,7 @@ var parameters$1 = {
 
 //      
 
-                                          
+                                                      
 
 var IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
 
@@ -547,7 +633,7 @@ ComponentManager.prototype.getStage = function getStage (){
     return this._stage;
 };
 
-ComponentManager.prototype.add = function add (component       ){
+ComponentManager.prototype.add = function add (component ){
     var id = component.id;
     if(!this.find(id)){
         this._types.push(this._convertNumbers(component));
@@ -564,6 +650,33 @@ ComponentManager.prototype.add = function add (component       ){
 
         if(this._components[id]){
             this._components[id].update();
+        }
+    }
+};
+
+ComponentManager.prototype.addCommand = function addCommand (commandType    , id    , params    ){
+    var type = this.find(id);
+    if(type){
+        switch(type.type){
+            case 'Canvas': case 'Window':
+                type.commands = type.commands || [];
+                type.commands.push(Object.assign({}, this._convertNumbers(params),
+                    {type: commandType}));
+                if(this._components[id])
+                    { this._components[id].markContentDirty(); }
+                break;
+        }
+    }
+};
+
+ComponentManager.prototype.clearCommands = function clearCommands (id    ){
+    var type = this.find(id);
+    if(type){
+        switch(type.type){
+            case 'Canvas': case 'Window':
+                if(type.commands) { type.commands.splice(0); }
+                if(this._components[id]) { this._components[id].markContentDirty(); }
+                break;
         }
     }
 };
@@ -638,11 +751,13 @@ ComponentManager.prototype.update = function update (){
     });
 };
 
-ComponentManager.prototype._createComponent = function _createComponent (type       , parent            )        {
+ComponentManager.prototype._createComponent = function _createComponent (type , parent      )        {
     switch(type.type){
         case 'Window':
             return new WindowComponent(type, parent);
-        case 'Sprite': case 'Container':
+        case 'Sprite':
+            return new SpriteComponent(type, parent);
+        case 'Container':
             return new SpriteComponent(type, parent);
         case 'Label':
             return new LabelComponent(type, parent);
@@ -780,6 +895,19 @@ registerPluginCommands({
             id: id, parentId: parentId,
             picture: picture$1},
             arr2obj(params)));
+    },
+
+    draw: function draw(type, id, param1st){
+        var params = [], len = arguments.length - 3;
+        while ( len-- > 0 ) params[ len ] = arguments[ len + 3 ];
+
+        getComponentManager().addCommand(type, id, Object.assign({}, arr2obj(params),
+            {picture: param1st,
+            text: param1st}));
+    },
+
+    clear: function clear(id){
+        getComponentManager().clearCommands(id);
     },
 
     close: function close(id){

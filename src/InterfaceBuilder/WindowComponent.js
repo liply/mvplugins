@@ -1,7 +1,9 @@
 // @flow
 
 import type {WindowType, NodeType} from './ComponentTypes.js'
-import {isInsideScreen} from './SpriteUtil.js'
+
+import {isInsideScreen, assignParameters} from './SpriteUtil.js'
+import renderCommands from './RenderingCommands.js'
 
 declare var Window_Base;
 declare var ImageManager;
@@ -9,6 +11,7 @@ declare var Bitmap;
 
 export default class WindowComponent extends Window_Base{
     _type: WindowType;
+    _contentReady: boolean;
 
     constructor(type: WindowType, parent: NodeType){
         super();
@@ -21,7 +24,7 @@ export default class WindowComponent extends Window_Base{
     }
 
     _assignTypeParameters(){
-        Object.keys(this._type).forEach(key=>this[key] = this._type[key]);
+        assignParameters(this, this._type);
     }
 
     update(){
@@ -30,21 +33,33 @@ export default class WindowComponent extends Window_Base{
         if(isInsideScreen(this)) this._activateContent();
         else this._deactivateContent();
 
-
-        if(ImageManager.isReady() && this._needsContentRefresh()){
+        if(this._needContentRefresh()){
             this._refreshContent();
         }
 
         super.update();
     }
 
-    _needsContentRefresh(){
+    _needContentRefresh(){
         if(!this.isContentActive()) return false;
-        return !this.contents || this.contents.width !== this.width || this.contents.height !== this.height;
+        return !this._contentReady || !this.contents || this._needResize();
+    }
+
+    _needResize(){
+        return this.contents.width !== this.width || this.contents.height !== this.height;
     }
 
     _refreshContent(){
-        this.contents = new Bitmap(this.width, this.height);
+        if(this._needResize()){
+            this.contents = new Bitmap(this.width, this.height);
+            this._contentReady = false;
+        }
+
+        if(this.contents && !this._contentReady){
+            if(renderCommands(this.contents, this._type.commands)){
+                this._contentReady = true;
+            }
+        }
     }
 
     containsPoint(point: {x: number, y: number}){
@@ -75,6 +90,10 @@ export default class WindowComponent extends Window_Base{
 
     isContentActive(){
         return this._contentActive;
+    }
+
+    markContentDirty(){
+        this._contentReady = false;
     }
 
     _activateContent() {

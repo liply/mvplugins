@@ -1,6 +1,6 @@
 // @flow
 
-import type Any from './ComponentTypes.js'
+import type {Any, NodeType} from './ComponentTypes.js'
 
 import WindowComponent from './WindowComponent.js'
 import SpriteComponent from './SpriteComponent.js'
@@ -36,7 +36,7 @@ export default class ComponentManager{
         return this._stage;
     }
 
-    add(component: Types.Any){
+    add(component: Any){
         const id = component.id;
         if(!this.find(id)){
             this._types.push(this._convertNumbers(component));
@@ -53,6 +53,35 @@ export default class ComponentManager{
 
             if(this._components[id]){
                 this._components[id].update();
+            }
+        }
+    }
+
+    addCommand(commandType: string, id: string, params: Object){
+        let type = this.find(id);
+        if(type){
+            switch(type.type){
+                case 'Canvas': case 'Window':
+                    type.commands = type.commands || [];
+                    type.commands.push({
+                        ...this._convertNumbers(params),
+                        type: commandType
+                    });
+                    if(this._components[id])
+                        this._components[id].markContentDirty();
+                    break;
+            }
+        }
+    }
+
+    clearCommands(id: string){
+        let type = this.find(id);
+        if(type){
+            switch(type.type){
+                case 'Canvas': case 'Window':
+                    if(type.commands) type.commands.splice(0);
+                    if(this._components[id]) this._components[id].markContentDirty();
+                    break;
             }
         }
     }
@@ -121,11 +150,13 @@ export default class ComponentManager{
         });
     }
 
-    _createComponent(type: Types.Any, parent: Types.NodeType): ?Component{
+    _createComponent(type: Any, parent: NodeType): ?Component{
         switch(type.type){
             case 'Window':
                 return new WindowComponent(type, parent);
-            case 'Sprite': case 'Container':
+            case 'Sprite':
+                return new SpriteComponent(type, parent);
+            case 'Container':
                 return new SpriteComponent(type, parent);
             case 'Label':
                 return new LabelComponent(type, parent);

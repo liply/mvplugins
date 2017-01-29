@@ -38,6 +38,18 @@ registerPluginCommands({
         });
     },
 
+    draw(type, id, param1st, ...params){
+        getComponentManager().addCommand(type, id, {
+            ...arr2obj(params),
+            picture: param1st,
+            text: param1st
+        });
+    },
+
+    clear(id){
+        getComponentManager().clearCommands(id);
+    },
+
     close(id){
         getComponentManager().close(id);
     },

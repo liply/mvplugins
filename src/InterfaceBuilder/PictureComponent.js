@@ -12,7 +12,7 @@ export default class PictureComponent extends SpriteComponent{
     }
     set picture(value: string){
         if(this._picture !== value){
-            this.markDirty();
+            this.markContentDirty();
             this._picture = value;
         }
     }
