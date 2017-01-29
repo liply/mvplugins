@@ -1,6 +1,6 @@
 // @flow
 
-import type {Any, NodeType} from './ComponentTypes.js'
+import type {Any, NodeType, Base} from './ComponentTypes.js'
 
 import WindowComponent from './WindowComponent.js'
 import SpriteComponent from './SpriteComponent.js'
@@ -163,9 +163,18 @@ export default class ComponentManager{
             let component = this._components[type.id];
             if(!component){
                 component = this._createComponent(type, this._components[type.parentId]);
+                this._fillDefaultParams(component, type);
                 if(component) this._components[type.id] = component;
             }
         });
+    }
+
+    _fillDefaultParams(from: any, type: Base){
+        type.x = type.x || from.x;
+        type.y = type.y || from.x;
+        type.scaleX = type.scaleX || from.scaleX;
+        type.scaleY = type.scaleY || from.scaleY;
+        type.rotation = type.rotation || from.rotation;
     }
 
     _createComponent(type: Any, parent: NodeType): ?Component{

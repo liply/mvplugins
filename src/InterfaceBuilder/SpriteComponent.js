@@ -12,15 +12,28 @@ export default class SpriteComponent extends Sprite{
     get anchorX(): number{
         return this.anchor.x;
     }
-
     set anchorX(value: number) {
         this.anchor.x = value;
+    }
+
+
+    get scaleX(): number{
+        return this.scale.x * 100;
+    }
+    set scaleX(value: number) {
+        this.scale.x = value / 100;
+    }
+
+    get scaleY(): number{
+        return this.scale.y * 100;
+    }
+    set scaleY(value: number) {
+        this.scale.y = value / 100;
     }
 
     get anchorY(): number{
         return this.anchor.y;
     }
-
     set anchorY(value: number) {
         this.anchor.y = value;
     }

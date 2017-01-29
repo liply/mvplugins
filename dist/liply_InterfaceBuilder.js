@@ -285,6 +285,22 @@ var WindowComponent = (function (Window_Base) {
     WindowComponent.prototype = Object.create( Window_Base && Window_Base.prototype );
     WindowComponent.prototype.constructor = WindowComponent;
 
+    var prototypeAccessors = { scaleX: {},scaleY: {} };
+
+    prototypeAccessors.scaleX.get = function ()        {
+        return this.scale.x * 100;
+    };
+    prototypeAccessors.scaleX.set = function (value        ) {
+        this.scale.x = value / 100;
+    };
+
+    prototypeAccessors.scaleY.get = function ()        {
+        return this.scale.y * 100;
+    };
+    prototypeAccessors.scaleY.set = function (value        ) {
+        this.scale.y = value / 100;
+    };
+
     WindowComponent.prototype._assignTypeParameters = function _assignTypeParameters (){
         assignParameters(this, this._type);
     };
@@ -369,6 +385,8 @@ var WindowComponent = (function (Window_Base) {
         }
     };
 
+    Object.defineProperties( WindowComponent.prototype, prototypeAccessors );
+
     return WindowComponent;
 }(Window_Base));
 
@@ -388,20 +406,33 @@ var SpriteComponent = (function (Sprite) {
     SpriteComponent.prototype = Object.create( Sprite && Sprite.prototype );
     SpriteComponent.prototype.constructor = SpriteComponent;
 
-    var prototypeAccessors = { anchorX: {},anchorY: {} };
+    var prototypeAccessors = { anchorX: {},scaleX: {},scaleY: {},anchorY: {} };
 
     prototypeAccessors.anchorX.get = function ()        {
         return this.anchor.x;
     };
-
     prototypeAccessors.anchorX.set = function (value        ) {
         this.anchor.x = value;
+    };
+
+
+    prototypeAccessors.scaleX.get = function ()        {
+        return this.scale.x * 100;
+    };
+    prototypeAccessors.scaleX.set = function (value        ) {
+        this.scale.x = value / 100;
+    };
+
+    prototypeAccessors.scaleY.get = function ()        {
+        return this.scale.y * 100;
+    };
+    prototypeAccessors.scaleY.set = function (value        ) {
+        this.scale.y = value / 100;
     };
 
     prototypeAccessors.anchorY.get = function ()        {
         return this.anchor.y;
     };
-
     prototypeAccessors.anchorY.set = function (value        ) {
         this.anchor.y = value;
     };
@@ -622,7 +653,7 @@ var parameters$1 = {
 
 //      
 
-                                                      
+                                                            
 
 var IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
 
@@ -758,9 +789,18 @@ ComponentManager.prototype.update = function update (){
         var component = this$1._components[type.id];
         if(!component){
             component = this$1._createComponent(type, this$1._components[type.parentId]);
+            this$1._fillDefaultParams(component, type);
             if(component) { this$1._components[type.id] = component; }
         }
     });
+};
+
+ComponentManager.prototype._fillDefaultParams = function _fillDefaultParams (from , type  ){
+    type.x = type.x || from.x;
+    type.y = type.y || from.x;
+    type.scaleX = type.scaleX || from.scaleX;
+    type.scaleY = type.scaleY || from.scaleY;
+    type.rotation = type.rotation || from.rotation;
 };
 
 ComponentManager.prototype._createComponent = function _createComponent (type , parent      )        {

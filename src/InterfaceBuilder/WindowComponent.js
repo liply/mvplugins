@@ -13,6 +13,21 @@ export default class WindowComponent extends Window_Base{
     _type: WindowType;
     _contentReady: boolean;
 
+    get scaleX(): number{
+        return this.scale.x * 100;
+    }
+    set scaleX(value: number) {
+        this.scale.x = value / 100;
+    }
+
+    get scaleY(): number{
+        return this.scale.y * 100;
+    }
+    set scaleY(value: number) {
+        this.scale.y = value / 100;
+    }
+
+
     constructor(type: WindowType, parent: NodeType){
         super();
 
