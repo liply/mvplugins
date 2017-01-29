@@ -1,7 +1,7 @@
 // @flow
 
 import type {BaseSpriteType, NodeType} from './ComponentTypes.js'
-import {isInsideScreen, assignParameters} from './SpriteUtil.js'
+import {isInsideScreen, assignParameters, fillDefaultParams} from './SpriteUtil.js'
 
 declare var Sprite;
 
@@ -41,7 +41,9 @@ export default class SpriteComponent extends Sprite{
     constructor(type: ?BaseSpriteType, parent: ?NodeType){
         super();
 
-        if(type)this._type = type;
+        if(type){
+            this._type = type;
+        }
         this.markContentDirty();
         if(parent) parent.addChild(this);
     }

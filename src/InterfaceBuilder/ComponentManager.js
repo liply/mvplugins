@@ -6,6 +6,7 @@ import WindowComponent from './WindowComponent.js'
 import SpriteComponent from './SpriteComponent.js'
 import LabelComponent from './LabelComponent.js'
 import PictureComponent from './PictureComponent.js'
+import {fillDefaultParams} from './SpriteUtil.js'
 
 import Animator from './Animator.js'
 import {convertEscapeCharacters} from '../lib/util.js'
@@ -54,7 +55,7 @@ export default class ComponentManager{
                 delete this._animators[id];
             }
 
-            const converted = this._convertNumbers(component);
+            const converted = this._convertNumbers(component, true);
             const targetType = this._types.find(type=>type.id === id);
             if(targetType)
                 Object.keys(converted).forEach(key=>targetType[key]=converted[key]);
@@ -104,14 +105,18 @@ export default class ComponentManager{
         this._damping = null;
     }
 
-    _convertNumbers(params: Object){
+    _convertNumbers(params: Object, removeDefault: ?boolean): any{
+        let result = {};
+        if(!removeDefault) fillDefaultParams(result);
         Object.keys(params).forEach(key=>{
             if(IGNORE.indexOf(key) === -1){
-                params[key] = this._convertUnit(params[key]);
+                result[key] = this._convertUnit(params[key]);
+            }else{
+                result[key] = params[key];
             }
         });
 
-        return params;
+        return result;
     }
 
     _extractUnit(value: string){
@@ -163,18 +168,9 @@ export default class ComponentManager{
             let component = this._components[type.id];
             if(!component){
                 component = this._createComponent(type, this._components[type.parentId]);
-                this._fillDefaultParams(component, type);
                 if(component) this._components[type.id] = component;
             }
         });
-    }
-
-    _fillDefaultParams(from: any, type: Base){
-        type.x = type.x || from.x;
-        type.y = type.y || from.x;
-        type.scaleX = type.scaleX || from.scaleX;
-        type.scaleY = type.scaleY || from.scaleY;
-        type.rotation = type.rotation || from.rotation;
     }
 
     _createComponent(type: Any, parent: NodeType): ?Component{
@@ -248,7 +244,7 @@ export default class ComponentManager{
         if(!this._animators[id]){
             this._animators[id] = new Animator(this._types.find(type=>(type.id===id)), this._stiffness, this._damping);
         }
-        this._animators[id].animate(this._convertNumbers(fields));
+        this._animators[id].animate(this._convertNumbers(fields, true));
     }
 
     emulateEvent(key: string, id: string){

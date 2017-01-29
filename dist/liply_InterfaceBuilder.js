@@ -199,6 +199,14 @@ function assignParameters(target, params){
     });
 }
 
+function fillDefaultParams(type){
+    type.x = 0;
+    type.y = 0;
+    type.scaleX = 100;
+    type.scaleY = 100;
+    type.rotation = 0;
+}
+
 //      
 
                    
@@ -275,6 +283,7 @@ var WindowComponent = (function (Window_Base) {
         Window_Base.call(this);
 
         this._type = type;
+
         parent.addChild(this);
 
         this._assignTypeParameters();
@@ -397,7 +406,9 @@ var SpriteComponent = (function (Sprite) {
     function SpriteComponent(type                 , parent           ){
         Sprite.call(this);
 
-        if(type){ this._type = type; }
+        if(type){
+            this._type = type;
+        }
         this.markContentDirty();
         if(parent) { parent.addChild(this); }
     }
@@ -676,7 +687,7 @@ ComponentManager.prototype.add = function add (component ){
             delete this._animators[id];
         }
 
-        var converted = this._convertNumbers(component);
+        var converted = this._convertNumbers(component, true);
         var targetType = this._types.find(function (type){ return type.id === id; });
         if(targetType)
             { Object.keys(converted).forEach(function (key){ return targetType[key]=converted[key]; }); }
@@ -724,16 +735,20 @@ ComponentManager.prototype.setDefaultSpringParams = function setDefaultSpringPar
     this._damping = null;
 };
 
-ComponentManager.prototype._convertNumbers = function _convertNumbers (params    ){
+ComponentManager.prototype._convertNumbers = function _convertNumbers (params    , removeDefault      ) {
         var this$1 = this;
 
+    var result = {};
+    if(!removeDefault) { fillDefaultParams(result); }
     Object.keys(params).forEach(function (key){
         if(IGNORE.indexOf(key) === -1){
-            params[key] = this$1._convertUnit(params[key]);
+            result[key] = this$1._convertUnit(params[key]);
+        }else{
+            result[key] = params[key];
         }
     });
 
-    return params;
+    return result;
 };
 
 ComponentManager.prototype._extractUnit = function _extractUnit (value    ){
@@ -789,18 +804,9 @@ ComponentManager.prototype.update = function update (){
         var component = this$1._components[type.id];
         if(!component){
             component = this$1._createComponent(type, this$1._components[type.parentId]);
-            this$1._fillDefaultParams(component, type);
             if(component) { this$1._components[type.id] = component; }
         }
     });
-};
-
-ComponentManager.prototype._fillDefaultParams = function _fillDefaultParams (from , type  ){
-    type.x = type.x || from.x;
-    type.y = type.y || from.x;
-    type.scaleX = type.scaleX || from.scaleX;
-    type.scaleY = type.scaleY || from.scaleY;
-    type.rotation = type.rotation || from.rotation;
 };
 
 ComponentManager.prototype._createComponent = function _createComponent (type , parent      )        {
@@ -878,7 +884,7 @@ ComponentManager.prototype.animate = function animate (id    , fields    ){
     if(!this._animators[id]){
         this._animators[id] = new Animator(this._types.find(function (type){ return (type.id===id); }), this._stiffness, this._damping);
     }
-    this._animators[id].animate(this._convertNumbers(fields));
+    this._animators[id].animate(this._convertNumbers(fields, true));
 };
 
 ComponentManager.prototype.emulateEvent = function emulateEvent (key    , id    ){

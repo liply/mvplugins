@@ -2,7 +2,7 @@
 
 import type {WindowType, NodeType} from './ComponentTypes.js'
 
-import {isInsideScreen, assignParameters} from './SpriteUtil.js'
+import {isInsideScreen, assignParameters, fillDefaultParams} from './SpriteUtil.js'
 import renderCommands from './RenderingCommands.js'
 
 declare var Window_Base;
@@ -32,6 +32,7 @@ export default class WindowComponent extends Window_Base{
         super();
 
         this._type = type;
+
         parent.addChild(this);
 
         this._assignTypeParameters();

@@ -14,3 +14,11 @@ export function assignParameters(target, params){
         if(target[key] !== params[key])target[key] = params[key];
     })
 }
+
+export function fillDefaultParams(type){
+    type.x = 0;
+    type.y = 0;
+    type.scaleX = 100;
+    type.scaleY = 100;
+    type.rotation = 0;
+}
