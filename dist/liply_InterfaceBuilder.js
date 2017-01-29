@@ -573,9 +573,11 @@ AnimatedValue.prototype.update = function update (){
     }
 };
 
-var Animator = function Animator(target     ){
+var Animator = function Animator(target     , stiffness    , damping    ){
     if(target) { this._target = target; }
     this._animatedValues = {};
+    this._stiffness = stiffness || defaultStiffness;
+    this._damping = damping || defaultDamping;
 };
 
 Animator.prototype.animate = function animate (to    ){
@@ -584,7 +586,7 @@ Animator.prototype.animate = function animate (to    ){
     Object.keys(to).forEach(function (key){
         if(!this$1._animatedValues[key]){
             this$1._animatedValues[key] =
-                new AnimatedValue(this$1._target[key], defaultStiffness, defaultDamping, defaultEps);
+                new AnimatedValue(this$1._target[key], this$1._stiffness, this$1._damping, defaultEps);
         }
         this$1._animatedValues[key].targetField(this$1._target, key);
         this$1._animatedValues[key].set(to[key]);
@@ -679,6 +681,11 @@ ComponentManager.prototype.clearCommands = function clearCommands (id    ){
                 break;
         }
     }
+};
+
+ComponentManager.prototype.setSpringParams = function setSpringParams (stiffness    , damping    ){
+    this._stiffness = stiffness;
+    this._damping = damping;
 };
 
 ComponentManager.prototype._convertNumbers = function _convertNumbers (params    ){
@@ -781,7 +788,31 @@ ComponentManager.prototype.getHandler = function getHandler (type    , x    , y 
     if(id){
         return this._handlers[type][id];
     }
+        
     return null;
+};
+
+ComponentManager.prototype.getEmulateEventName = function getEmulateEventName (){
+        var this$1 = this;
+
+    var name;
+    Object.keys(this._handlers.emulation).forEach(function (key){
+        if(Input.isPressed(key)){
+            name = this$1._getEmulatedName(key, 'press') || name;
+            this$1._keys[key] = true;
+        }else if(this$1._keys[key]){
+            name = this$1._getEmulatedName(key, 'release') || name;
+            this$1._keys[key] = false;
+        }
+        if(Input.isTriggered(key)) { name = this$1._getEmulatedName(key, 'trigger') || name; }
+        if(Input.isLongPressed(key)) { name = this$1._getEmulatedName(key, 'longPress') || name; }
+    });
+
+    return name;
+};
+
+ComponentManager.prototype._getEmulatedName = function _getEmulatedName (key    , type    ){
+    return this._handlers[type][this._handlers.emulation[key]];
 };
 
 ComponentManager.prototype.getIdUnder = function getIdUnder (x    , y    ){
@@ -800,9 +831,17 @@ ComponentManager.prototype.getIdUnder = function getIdUnder (x    , y    ){
 
 ComponentManager.prototype.animate = function animate (id    , fields    ){
     if(!this._animators[id]){
-        this._animators[id] = new Animator(this._types.find(function (type){ return (type.id===id); }));
+        this._animators[id] = new Animator(this._types.find(function (type){ return (type.id===id); }), this._stiffness, this._damping);
     }
     this._animators[id].animate(this._convertNumbers(fields));
+};
+
+ComponentManager.prototype.emulateEvent = function emulateEvent (key    , id    ){
+    this._handlers.emulation[key] = id;
+};
+
+ComponentManager.prototype.removeEventEmulation = function removeEventEmulation (key    ){
+    delete this._handlers.emulation[key];
 };
 
 ComponentManager.prototype.finishAnimation = function finishAnimation (){
@@ -828,9 +867,10 @@ ComponentManager.prototype.clear = function clear (){
     this._stage.children.slice(0).forEach(function (child){ return this$1._stage.removeChild(child); });
 
     this._types = [];
+    this._keys = {};
     this._components = {stage: this._stage};
     this._animators = {};
-    this._handlers = { trigger: {}} ;
+    this._handlers = { release: {}, trigger: {}, emulation: {}, press: {}, longPress: {}} ;
 };
 
 ComponentManager.prototype.load = function load (data    ){
@@ -906,6 +946,14 @@ registerPluginCommands({
             text: param1st}));
     },
 
+    emulate: function emulate(key, id){
+        getComponentManager().emulateEvent(key ,id);
+    },
+
+    removeEmulation: function removeEmulation(key){
+        getComponentManager().removeEventEmulation(key);
+    },
+
     clear: function clear(id){
         getComponentManager().clearCommands(id);
     },
@@ -921,6 +969,10 @@ registerPluginCommands({
         getComponentManager().add(Object.assign({}, {type: 'Container',
             id: id, parentId: parentId},
             arr2obj(params)));
+    },
+
+    spring: function spring(stiffness, damping){
+        getComponentManager().setSpringParams(+stiffness, +damping);
     },
 
     animate: function animate(id){
@@ -940,6 +992,30 @@ registerPluginCommands({
 
     removeTrigger: function removeTrigger(id){
         getComponentManager().removeHandler(id, 'trigger');
+    },
+
+    setLongPress: function setLongPress(id, name){
+        getComponentManager().setHandler(id, 'longPress', name);
+    },
+
+    removeLongPress: function removeLongPress(id){
+        getComponentManager().removeHandler(id, 'longPress');
+    },
+
+    setPress: function setPress(id, name){
+        getComponentManager().setHandler(id, 'press', name);
+    },
+
+    removePress: function removePress(id){
+        getComponentManager().removeHandler(id, 'press');
+    },
+
+    setRelease: function setRelease(id, name){
+        getComponentManager().setHandler(id, 'release', name);
+    },
+
+    removeRelease: function removeRelease(id){
+        getComponentManager().removeHandler(id, 'release');
     }
 });
 
@@ -998,20 +1074,47 @@ wrapPrototype(Scene_Map, 'terminate', function (old){ return function(){
     old.call(this);
 }; });
 
+function startEvent(name){
+    var event = findEventByName(name);
+    if(event){
+        event.start();
+        return true;
+    }else{
+        var id = findCommonEventIdByName(name);
+        if(id){
+            $gameTemp.reserveCommonEvent(id);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 wrapPrototype(Scene_Map, 'update', function (old){ return function(){
     this._componentManager.update();
 
-    if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
+    var eventRunning = $gameMap.isEventRunning();
+
+    if(TouchInput.isTriggered() && !eventRunning){
         var name = this._componentManager.getHandler('trigger', TouchInput.x, TouchInput.y);
-        var event = findEventByName(name);
-        if(event){
-            event.start();
-        }else{
-            var id = findCommonEventIdByName(name);
-            if(id){
-                $gameTemp.reserveCommonEvent(id);
-            }
-        }
+        eventRunning = startEvent(name) || eventRunning;
+    }
+    if(TouchInput.isPressed() && !eventRunning){
+        var name$1 = this._componentManager.getHandler('press', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name$1) || eventRunning;
+    }
+    if(TouchInput.isLongPressed() && !eventRunning){
+        var name$2 = this._componentManager.getHandler('longPress', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name$2) || eventRunning;
+    }
+    if(TouchInput.isReleased() && !eventRunning){
+        var name$3 = this._componentManager.getHandler('release', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name$3) || eventRunning;
+    }
+
+    if(!eventRunning){
+        var name$4 = this._componentManager.getEmulateEventName();
+        startEvent(name$4);
     }
 
     old.call(this);
