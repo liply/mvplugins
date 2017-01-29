@@ -73,8 +73,8 @@ export default class Animator{
     _target: Object;
     _animatedValues: {[key: string]: AnimatedValue};
 
-    constructor(target: Object){
-        this._target = target;
+    constructor(target: ?Object){
+        if(target) this._target = target;
         this._animatedValues = {};
     }
 

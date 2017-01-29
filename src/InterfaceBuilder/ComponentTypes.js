@@ -10,6 +10,8 @@ export interface Base{
     rotation: number;
     width: number;
     height: number;
+
+    [key: string]: any;
 }
 
 export interface NodeType{

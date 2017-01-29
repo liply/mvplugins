@@ -10,6 +10,7 @@
     "compile": "run-p compile:*",
     "copy": "cp-cli ./dist/ ./game/js/plugins/",
     "test": "run-s compile copy",
+    "flow": "flow",
     "start": "http-server game"
   },
   "repository": {

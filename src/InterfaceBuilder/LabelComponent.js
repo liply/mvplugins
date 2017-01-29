@@ -2,13 +2,15 @@
 
 import SpriteComponent from './SpriteComponent'
 
+declare var Bitmap;
+
 export default class LabelComponent extends SpriteComponent{
     _text: string;
 
     get text(): string{
         return this._text;
     }
-    set text(value): string{
+    set text(value: string){
         if(this._text !== value){
             this.markDirty();
             this._text = value;

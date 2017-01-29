@@ -5,6 +5,7 @@ import {isInsideScreen} from './SpriteUtil.js'
 
 declare var Window_Base;
 declare var ImageManager;
+declare var Bitmap;
 
 export default class WindowComponent extends Window_Base{
     _type: WindowType;
@@ -46,7 +47,7 @@ export default class WindowComponent extends Window_Base{
         this.contents = new Bitmap(this.width, this.height);
     }
 
-    containsPoint(point){
+    containsPoint(point: {x: number, y: number}){
         const gx = this.worldTransform.tx;
         const gy = this.worldTransform.ty;
         const w = this.width;

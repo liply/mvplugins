@@ -1,6 +1,6 @@
 // @flow
 
-import type * as Types from './ComponentTypes.js'
+import type Any from './ComponentTypes.js'
 
 import WindowComponent from './WindowComponent.js'
 import SpriteComponent from './SpriteComponent.js'
@@ -19,7 +19,7 @@ declare var Graphics;
 const IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
 
 export default class ComponentManager{
-    _types: Array<Types.Any>;
+    _types: Array<Any>;
     _components: { [key: string]: Component };
     _animators: { [key: string]: Animator };
     _stage: SpriteComponent;
@@ -48,7 +48,8 @@ export default class ComponentManager{
 
             const converted = this._convertNumbers(component);
             const targetType = this._types.find(type=>type.id === id);
-            Object.keys(converted).forEach(key=>targetType[key]=converted[key]);
+            if(targetType)
+                Object.keys(converted).forEach(key=>targetType[key]=converted[key]);
 
             if(this._components[id]){
                 this._components[id].update();
@@ -56,7 +57,7 @@ export default class ComponentManager{
         }
     }
 
-    _convertNumbers(params){
+    _convertNumbers(params: Object){
         Object.keys(params).forEach(key=>{
             if(IGNORE.indexOf(key) === -1){
                 params[key] = this._convertUnit(params[key]);
@@ -66,13 +67,13 @@ export default class ComponentManager{
         return params;
     }
 
-    _extractUnit(value){
+    _extractUnit(value: string){
         const match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
         if(match) return {value: +match[1], unit: match[2]};
-        return {value: +value};
+        return {value: +value, unit: ''};
     }
 
-    _convertUnit(rawValue){
+    _convertUnit(rawValue: string){
         rawValue = convertEscapeCharacters(rawValue);
         let {value, unit} = this._extractUnit(rawValue);
 
@@ -151,7 +152,7 @@ export default class ComponentManager{
         return null;
     }
 
-    getIdUnder(x, y){
+    getIdUnder(x: number, y: number){
         let id;
         let point = {x,y};
 

@@ -28,7 +28,7 @@ export default class SpriteComponent extends Sprite{
     constructor(type: ?SpriteType, parent: ?NodeType){
         super();
 
-        this._type = type;
+        if(type)this._type = type;
         this.markDirty();
         if(parent) parent.addChild(this);
     }

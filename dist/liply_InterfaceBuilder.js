@@ -240,7 +240,7 @@ var WindowComponent = (function (Window_Base) {
         this.contents = new Bitmap(this.width, this.height);
     };
 
-    WindowComponent.prototype.containsPoint = function containsPoint (point){
+    WindowComponent.prototype.containsPoint = function containsPoint (point                        ){
         var gx = this.worldTransform.tx;
         var gy = this.worldTransform.ty;
         var w = this.width;
@@ -291,7 +291,7 @@ var SpriteComponent = (function (Sprite) {
     function SpriteComponent(type             , parent           ){
         Sprite.call(this);
 
-        this._type = type;
+        if(type){ this._type = type; }
         this.markDirty();
         if(parent) { parent.addChild(this); }
     }
@@ -378,7 +378,7 @@ var LabelComponent = (function (SpriteComponent$$1) {
     prototypeAccessors.text.get = function ()        {
         return this._text;
     };
-    prototypeAccessors.text.set = function (value)        {
+    prototypeAccessors.text.set = function (value        ){
         if(this._text !== value){
             this.markDirty();
             this._text = value;
@@ -412,7 +412,7 @@ var PictureComponent = (function (SpriteComponent$$1) {
     prototypeAccessors.picture.get = function ()        {
         return this._picture;
     };
-    prototypeAccessors.picture.set = function (value)        {
+    prototypeAccessors.picture.set = function (value        ){
         if(this._picture !== value){
             this.markDirty();
             this._picture = value;
@@ -487,8 +487,8 @@ AnimatedValue.prototype.update = function update (){
     }
 };
 
-var Animator = function Animator(target    ){
-    this._target = target;
+var Animator = function Animator(target     ){
+    if(target) { this._target = target; }
     this._animatedValues = {};
 };
 
@@ -534,7 +534,7 @@ var parameters$1 = {
 
 //      
 
-                                                 
+                                          
 
 var IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
 
@@ -559,7 +559,8 @@ ComponentManager.prototype.add = function add (component       ){
 
         var converted = this._convertNumbers(component);
         var targetType = this._types.find(function (type){ return type.id === id; });
-        Object.keys(converted).forEach(function (key){ return targetType[key]=converted[key]; });
+        if(targetType)
+            { Object.keys(converted).forEach(function (key){ return targetType[key]=converted[key]; }); }
 
         if(this._components[id]){
             this._components[id].update();
@@ -567,7 +568,7 @@ ComponentManager.prototype.add = function add (component       ){
     }
 };
 
-ComponentManager.prototype._convertNumbers = function _convertNumbers (params){
+ComponentManager.prototype._convertNumbers = function _convertNumbers (params    ){
         var this$1 = this;
 
     Object.keys(params).forEach(function (key){
@@ -579,13 +580,13 @@ ComponentManager.prototype._convertNumbers = function _convertNumbers (params){
     return params;
 };
 
-ComponentManager.prototype._extractUnit = function _extractUnit (value){
+ComponentManager.prototype._extractUnit = function _extractUnit (value    ){
     var match = /([\d\.]+)([a-zA-Z%]+)/.exec(value);
     if(match) { return {value: +match[1], unit: match[2]}; }
-    return {value: +value};
+    return {value: +value, unit: ''};
 };
 
-ComponentManager.prototype._convertUnit = function _convertUnit (rawValue){
+ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
     rawValue = convertEscapeCharacters(rawValue);
     var ref = this._extractUnit(rawValue);
         var value = ref.value;
@@ -668,7 +669,7 @@ ComponentManager.prototype.getHandler = function getHandler (type    , x    , y 
     return null;
 };
 
-ComponentManager.prototype.getIdUnder = function getIdUnder (x, y){
+ComponentManager.prototype.getIdUnder = function getIdUnder (x    , y    ){
         var this$1 = this;
 
     var id;
