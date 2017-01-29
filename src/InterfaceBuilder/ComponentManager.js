@@ -15,6 +15,7 @@ type Component =  WindowComponent | SpriteComponent | LabelComponent;
 type Handlers = { [key: string]: string }
 
 declare var Graphics;
+declare var Input;
 
 const IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
 
@@ -24,8 +25,15 @@ export default class ComponentManager{
     _animators: { [key: string]: Animator };
     _stage: SpriteComponent;
     _handlers: {
-        trigger: Handlers
+        trigger: Handlers,
+        press: Handlers,
+        longPress: Handlers,
+        release: Handlers,
+        emulation: Handlers
     };
+    _keys: Object;
+    _stiffness: number;
+    _damping: number;
 
     constructor(){
         this._stage = new SpriteComponent();
@@ -84,6 +92,11 @@ export default class ComponentManager{
                     break;
             }
         }
+    }
+
+    setSpringParams(stiffness: number, damping: number){
+        this._stiffness = stiffness;
+        this._damping = damping;
     }
 
     _convertNumbers(params: Object){
@@ -180,7 +193,29 @@ export default class ComponentManager{
         if(id){
             return this._handlers[type][id];
         }
+        
         return null;
+    }
+
+    getEmulateEventName(){
+        let name;
+        Object.keys(this._handlers.emulation).forEach(key=>{
+            if(Input.isPressed(key)){
+                name = this._getEmulatedName(key, 'press') || name;
+                this._keys[key] = true;
+            }else if(this._keys[key]){
+                name = this._getEmulatedName(key, 'release') || name;
+                this._keys[key] = false;
+            }
+            if(Input.isTriggered(key)) name = this._getEmulatedName(key, 'trigger') || name;
+            if(Input.isLongPressed(key)) name = this._getEmulatedName(key, 'longPress') || name;
+        });
+
+        return name;
+    }
+
+    _getEmulatedName(key: string, type: string){
+        return this._handlers[type][this._handlers.emulation[key]];
     }
 
     getIdUnder(x: number, y: number){
@@ -197,9 +232,17 @@ export default class ComponentManager{
 
     animate(id: string, fields: Object){
         if(!this._animators[id]){
-            this._animators[id] = new Animator(this._types.find(type=>(type.id===id)));
+            this._animators[id] = new Animator(this._types.find(type=>(type.id===id)), this._stiffness, this._damping);
         }
         this._animators[id].animate(this._convertNumbers(fields));
+    }
+
+    emulateEvent(key: string, id: string){
+        this._handlers.emulation[key] = id;
+    }
+
+    removeEventEmulation(key: string){
+        delete this._handlers.emulation[key];
     }
 
     finishAnimation(){
@@ -221,9 +264,10 @@ export default class ComponentManager{
         this._stage.children.slice(0).forEach(child=>this._stage.removeChild(child));
 
         this._types = [];
+        this._keys = {};
         this._components = {stage: this._stage};
         this._animators = {};
-        this._handlers = { trigger: {}} ;
+        this._handlers = { release: {}, trigger: {}, emulation: {}, press: {}, longPress: {}} ;
     }
 
     load(data: Object){

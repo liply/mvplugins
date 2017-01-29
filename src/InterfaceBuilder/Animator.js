@@ -72,17 +72,21 @@ class AnimatedValue{
 export default class Animator{
     _target: Object;
     _animatedValues: {[key: string]: AnimatedValue};
+    _stiffness: number;
+    _damping: number;
 
-    constructor(target: ?Object){
+    constructor(target: ?Object, stiffness: number, damping: number){
         if(target) this._target = target;
         this._animatedValues = {};
+        this._stiffness = stiffness || defaultStiffness;
+        this._damping = damping || defaultDamping;
     }
 
     animate(to: Object){
         Object.keys(to).forEach(key=>{
             if(!this._animatedValues[key]){
                 this._animatedValues[key] =
-                    new AnimatedValue(this._target[key], defaultStiffness, defaultDamping, defaultEps);
+                    new AnimatedValue(this._target[key], this._stiffness, this._damping, defaultEps);
             }
             this._animatedValues[key].targetField(this._target, key);
             this._animatedValues[key].set(to[key]);

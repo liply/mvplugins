@@ -46,6 +46,14 @@ registerPluginCommands({
         });
     },
 
+    emulate(key, id){
+        getComponentManager().emulateEvent(key ,id);
+    },
+
+    removeEmulation(key){
+        getComponentManager().removeEventEmulation(key);
+    },
+
     clear(id){
         getComponentManager().clearCommands(id);
     },
@@ -62,6 +70,10 @@ registerPluginCommands({
         });
     },
 
+    spring(stiffness, damping){
+        getComponentManager().setSpringParams(+stiffness, +damping);
+    },
+
     animate(id, ...params){
         getComponentManager().animate(id, arr2obj(params));
     },
@@ -76,6 +88,30 @@ registerPluginCommands({
 
     removeTrigger(id){
         getComponentManager().removeHandler(id, 'trigger');
+    },
+
+    setLongPress(id, name){
+        getComponentManager().setHandler(id, 'longPress', name);
+    },
+
+    removeLongPress(id){
+        getComponentManager().removeHandler(id, 'longPress');
+    },
+
+    setPress(id, name){
+        getComponentManager().setHandler(id, 'press', name);
+    },
+
+    removePress(id){
+        getComponentManager().removeHandler(id, 'press');
+    },
+
+    setRelease(id, name){
+        getComponentManager().setHandler(id, 'release', name);
+    },
+
+    removeRelease(id){
+        getComponentManager().removeHandler(id, 'release');
     }
 });
 
@@ -134,20 +170,47 @@ wrapPrototype(Scene_Map, 'terminate', old=>function(){
     old.call(this);
 });
 
+function startEvent(name){
+    const event = findEventByName(name);
+    if(event){
+        event.start();
+        return true;
+    }else{
+        const id = findCommonEventIdByName(name);
+        if(id){
+            $gameTemp.reserveCommonEvent(id);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 wrapPrototype(Scene_Map, 'update', old=>function(){
     this._componentManager.update();
 
-    if(!$gameMap.isEventRunning() && TouchInput.isTriggered()){
+    let eventRunning = $gameMap.isEventRunning();
+
+    if(TouchInput.isTriggered() && !eventRunning){
         const name = this._componentManager.getHandler('trigger', TouchInput.x, TouchInput.y);
-        const event = findEventByName(name);
-        if(event){
-            event.start();
-        }else{
-            const id = findCommonEventIdByName(name);
-            if(id){
-                $gameTemp.reserveCommonEvent(id);
-            }
-        }
+        eventRunning = startEvent(name) || eventRunning;
+    }
+    if(TouchInput.isPressed() && !eventRunning){
+        const name = this._componentManager.getHandler('press', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name) || eventRunning;
+    }
+    if(TouchInput.isLongPressed() && !eventRunning){
+        const name = this._componentManager.getHandler('longPress', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name) || eventRunning;
+    }
+    if(TouchInput.isReleased() && !eventRunning){
+        const name = this._componentManager.getHandler('release', TouchInput.x, TouchInput.y);
+        eventRunning = startEvent(name) || eventRunning;
+    }
+
+    if(!eventRunning){
+        const name = this._componentManager.getEmulateEventName();
+        startEvent(name);
     }
 
     old.call(this);
