@@ -75,7 +75,7 @@ export default class Animator{
     _stiffness: number;
     _damping: number;
 
-    constructor(target: ?Object, stiffness: number, damping: number){
+    constructor(target: ?Object, stiffness: ?number, damping: ?number){
         if(target) this._target = target;
         this._animatedValues = {};
         this._stiffness = stiffness || defaultStiffness;

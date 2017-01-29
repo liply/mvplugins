@@ -32,8 +32,8 @@ export default class ComponentManager{
         emulation: Handlers
     };
     _keys: Object;
-    _stiffness: number;
-    _damping: number;
+    _stiffness: ?number;
+    _damping: ?number;
 
     constructor(){
         this._stage = new SpriteComponent();
@@ -97,6 +97,11 @@ export default class ComponentManager{
     setSpringParams(stiffness: number, damping: number){
         this._stiffness = stiffness;
         this._damping = damping;
+    }
+
+    setDefaultSpringParams(){
+        this._stiffness = null;
+        this._damping = null;
     }
 
     _convertNumbers(params: Object){

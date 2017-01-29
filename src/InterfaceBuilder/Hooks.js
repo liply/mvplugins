@@ -74,6 +74,10 @@ registerPluginCommands({
         getComponentManager().setSpringParams(+stiffness, +damping);
     },
 
+    springDefault(){
+        getComponentManager().setDefaultSpringParams();
+    },
+
     animate(id, ...params){
         getComponentManager().animate(id, arr2obj(params));
     },

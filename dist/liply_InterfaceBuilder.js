@@ -573,7 +573,7 @@ AnimatedValue.prototype.update = function update (){
     }
 };
 
-var Animator = function Animator(target     , stiffness    , damping    ){
+var Animator = function Animator(target     , stiffness     , damping     ){
     if(target) { this._target = target; }
     this._animatedValues = {};
     this._stiffness = stiffness || defaultStiffness;
@@ -686,6 +686,11 @@ ComponentManager.prototype.clearCommands = function clearCommands (id    ){
 ComponentManager.prototype.setSpringParams = function setSpringParams (stiffness    , damping    ){
     this._stiffness = stiffness;
     this._damping = damping;
+};
+
+ComponentManager.prototype.setDefaultSpringParams = function setDefaultSpringParams (){
+    this._stiffness = null;
+    this._damping = null;
 };
 
 ComponentManager.prototype._convertNumbers = function _convertNumbers (params    ){
@@ -973,6 +978,10 @@ registerPluginCommands({
 
     spring: function spring(stiffness, damping){
         getComponentManager().setSpringParams(+stiffness, +damping);
+    },
+
+    springDefault: function springDefault(){
+        getComponentManager().setDefaultSpringParams();
     },
 
     animate: function animate(id){
