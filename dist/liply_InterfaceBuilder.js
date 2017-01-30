@@ -578,8 +578,10 @@ AnimatedValue.prototype.targetField = function targetField (target, field){
     this._field = field;
 };
 
-AnimatedValue.prototype.set = function set (x){
+AnimatedValue.prototype.set = function set (x, k, b){
     this._destX = x;
+    this._k = k;
+    this._b = b;
 };
 
 AnimatedValue.prototype.finish = function finish (){
@@ -636,7 +638,7 @@ Animator.prototype.animate = function animate (to    ){
                 new AnimatedValue(this$1._target[key], this$1._stiffness, this$1._damping, defaultEps);
         }
         this$1._animatedValues[key].targetField(this$1._target, key);
-        this$1._animatedValues[key].set(to[key]);
+        this$1._animatedValues[key].set(to[key], this$1._stiffness, this$1._damping);
     });
 };
 
@@ -1073,6 +1075,11 @@ registerPluginCommands({
 
     removeRelease: function removeRelease(id){
         getComponentManager().removeHandler(id, 'release');
+    },
+
+    wait: function wait(frame){
+        this.wait(+frame);
+        this._breakBulkMode = true;
     }
 });
 
@@ -1180,6 +1187,49 @@ wrapPrototype(Scene_Map, 'update', function (old){ return function(){
 wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function(){
     old.call(this);
     this.addChild(this._componentManager.getStage());
+}; });
+
+wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
+    var this$1 = this;
+
+    var script = this.currentCommand().parameters[0] + '\n';
+    this._bulkMode = true;
+    this._breakBulkMode = false;
+    if(/^\/\/\s*@ib/.test(script)){
+        while (this.nextEventCode() === 655){
+            this$1._index++;
+            var params = this$1.currentCommand().parameters[0].split(' ');
+            var command = params.shift();
+            this$1.pluginCommand(command, params);
+
+            if(this$1._breakBulkMode) { return true; }
+        }
+
+        this._bulkMode = false;
+        return true;
+    }else{
+        return old.call(this);
+    }
+}; });
+
+wrapPrototype(Game_Interpreter, 'command655', function (old){ return function(){
+    var this$1 = this;
+
+    this._breakBulkMode = false;
+    if(this._bulkMode){
+        while (this.currentCommand().code === 655){
+            var params = this$1.currentCommand().parameters[0].split(' ');
+            var command = params.shift();
+            this$1.pluginCommand(command, params);
+
+            if(this$1._breakBulkMode) { return true; }
+            this$1._index++;
+        }
+
+        this._bulkMode = false;
+    }
+
+    return true;
 }; });
 
 SceneManager.getComponentManager = function(){

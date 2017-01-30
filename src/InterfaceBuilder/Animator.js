@@ -31,8 +31,10 @@ class AnimatedValue{
         this._field = field;
     }
 
-    set(x){
+    set(x, k, b){
         this._destX = x;
+        this._k = k;
+        this._b = b;
     }
 
     finish(){
@@ -94,7 +96,7 @@ export default class Animator{
                     new AnimatedValue(this._target[key], this._stiffness, this._damping, defaultEps);
             }
             this._animatedValues[key].targetField(this._target, key);
-            this._animatedValues[key].set(to[key]);
+            this._animatedValues[key].set(to[key], this._stiffness, this._damping);
         });
     }
 

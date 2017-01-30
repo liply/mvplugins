@@ -116,6 +116,11 @@ registerPluginCommands({
 
     removeRelease(id){
         getComponentManager().removeHandler(id, 'release');
+    },
+
+    wait(frame){
+        this.wait(+frame);
+        this._breakBulkMode = true;
     }
 });
 
@@ -223,6 +228,45 @@ wrapPrototype(Scene_Map, 'update', old=>function(){
 wrapPrototype(Scene_Map, 'createDisplayObjects', old=>function(){
     old.call(this);
     this.addChild(this._componentManager.getStage());
+});
+
+wrapPrototype(Game_Interpreter, 'command355', old=>function(){
+    let script = this.currentCommand().parameters[0] + '\n';
+    this._bulkMode = true;
+    this._breakBulkMode = false;
+    if(/^\/\/\s*@ib/.test(script)){
+        while (this.nextEventCode() === 655){
+            this._index++;
+            let params = this.currentCommand().parameters[0].split(' ');
+            let command = params.shift();
+            this.pluginCommand(command, params);
+
+            if(this._breakBulkMode) return true;
+        }
+
+        this._bulkMode = false;
+        return true;
+    }else{
+        return old.call(this);
+    }
+});
+
+wrapPrototype(Game_Interpreter, 'command655', old=>function(){
+    this._breakBulkMode = false;
+    if(this._bulkMode){
+        while (this.currentCommand().code === 655){
+            let params = this.currentCommand().parameters[0].split(' ');
+            let command = params.shift();
+            this.pluginCommand(command, params);
+
+            if(this._breakBulkMode) return true;
+            this._index++;
+        }
+
+        this._bulkMode = false;
+    }
+
+    return true;
 });
 
 SceneManager.getComponentManager = function(){
