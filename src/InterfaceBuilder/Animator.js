@@ -82,6 +82,11 @@ export default class Animator{
         this._damping = damping || defaultDamping;
     }
 
+    setSpring(stiffness: ?number, damping: ?number){
+        this._stiffness = stiffness || defaultStiffness;
+        this._damping = damping || defaultDamping;
+    }
+
     animate(to: Object){
         Object.keys(to).forEach(key=>{
             if(!this._animatedValues[key]){

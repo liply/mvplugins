@@ -622,6 +622,11 @@ var Animator = function Animator(target     , stiffness     , damping     ){
     this._damping = damping || defaultDamping;
 };
 
+Animator.prototype.setSpring = function setSpring (stiffness     , damping     ){
+    this._stiffness = stiffness || defaultStiffness;
+    this._damping = damping || defaultDamping;
+};
+
 Animator.prototype.animate = function animate (to    ){
         var this$1 = this;
 
@@ -877,8 +882,10 @@ ComponentManager.prototype.getIdUnder = function getIdUnder (x    , y    ){
 
 ComponentManager.prototype.animate = function animate (id    , fields    ){
     if(!this._animators[id]){
-        this._animators[id] = new Animator(this._types.find(function (type){ return (type.id===id); }), this._stiffness, this._damping);
+        this._animators[id] = new Animator(this._types.find(function (type){ return (type.id===id); }));
     }
+
+    this._animators[id].setSpring(this._stiffness, this._damping);
     this._animators[id].animate(this._convertNumbers(fields, true));
 };
 

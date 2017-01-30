@@ -238,8 +238,10 @@ export default class ComponentManager{
 
     animate(id: string, fields: Object){
         if(!this._animators[id]){
-            this._animators[id] = new Animator(this._types.find(type=>(type.id===id)), this._stiffness, this._damping);
+            this._animators[id] = new Animator(this._types.find(type=>(type.id===id)));
         }
+
+        this._animators[id].setSpring(this._stiffness, this._damping);
         this._animators[id].animate(this._convertNumbers(fields, true));
     }
 
