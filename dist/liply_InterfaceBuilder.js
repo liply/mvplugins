@@ -604,6 +604,8 @@ var PictureComponent = (function (SpriteComponent$$1) {
     };
 
     PictureComponent.prototype.update = function update (){
+        SpriteComponent$$1.prototype.update.call(this);
+
         if(this._frameDirty && this.bitmap && this.bitmap.isReady()){
             this._frameDirty = false;
 
@@ -615,8 +617,6 @@ var PictureComponent = (function (SpriteComponent$$1) {
             }
             this._refresh();
         }
-
-        SpriteComponent$$1.prototype.update.call(this);
     };
 
     PictureComponent.prototype._refreshContent = function _refreshContent (){
