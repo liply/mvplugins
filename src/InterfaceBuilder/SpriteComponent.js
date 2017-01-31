@@ -10,10 +10,10 @@ export default class SpriteComponent extends Sprite{
     _contentDirty: boolean;
 
     get anchorX(): number{
-        return this.anchor.x;
+        return this.anchor.x * 100;
     }
     set anchorX(value: number) {
-        this.anchor.x = value;
+        this.anchor.x = value / 100;
     }
 
 
@@ -32,10 +32,10 @@ export default class SpriteComponent extends Sprite{
     }
 
     get anchorY(): number{
-        return this.anchor.y;
+        return this.anchor.y * 100;
     }
     set anchorY(value: number) {
-        this.anchor.y = value;
+        this.anchor.y = value / 100;
     }
 
     constructor(type: ?BaseSpriteType, parent: ?NodeType){

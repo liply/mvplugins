@@ -18,8 +18,6 @@ type Handlers = { [key: string]: string }
 declare var Graphics;
 declare var Input;
 
-const IGNORE = ['id', 'picture', 'type', 'text', 'parentId'];
-
 export default class ComponentManager{
     _types: Array<Any>;
     _components: { [key: string]: Component };
@@ -109,7 +107,12 @@ export default class ComponentManager{
         let result = {};
         if(!removeDefault) fillDefaultParams(result);
         Object.keys(params).forEach(key=>{
-            result[key] = this._convertUnit(params[key]);
+            let {value, unit} = this._convertUnit(params[key]);
+            if(unit === '%'){
+                result[key+'P'] = value;
+            }else{
+                result[key] = value;
+            }
         });
 
         return result;
@@ -125,6 +128,10 @@ export default class ComponentManager{
         rawValue = convertEscapeCharacters(rawValue);
         let {value, unit, raw} = this._extractUnit(rawValue);
 
+        return {value: this._calcUnit(value, unit, raw), unit};
+    }
+
+    _calcUnit(value: number, unit: string, raw: string){
         switch(unit){
             case 'column':
                 return Graphics.width / parameters.column * value;
@@ -138,8 +145,6 @@ export default class ComponentManager{
                 return Graphics.boxWidth * (value / 100);
             case 'bh':
                 return Graphics.boxHeight * (value / 100);
-            case '%':
-                return value / 100;
             default:
                 return isNaN(value)? raw: value;
         }

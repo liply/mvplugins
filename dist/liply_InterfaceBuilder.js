@@ -420,10 +420,10 @@ var SpriteComponent = (function (Sprite) {
     var prototypeAccessors = { anchorX: {},scaleX: {},scaleY: {},anchorY: {} };
 
     prototypeAccessors.anchorX.get = function ()        {
-        return this.anchor.x;
+        return this.anchor.x * 100;
     };
     prototypeAccessors.anchorX.set = function (value        ) {
-        this.anchor.x = value;
+        this.anchor.x = value / 100;
     };
 
 
@@ -442,10 +442,10 @@ var SpriteComponent = (function (Sprite) {
     };
 
     prototypeAccessors.anchorY.get = function ()        {
-        return this.anchor.y;
+        return this.anchor.y * 100;
     };
     prototypeAccessors.anchorY.set = function (value        ) {
-        this.anchor.y = value;
+        this.anchor.y = value / 100;
     };
 
     SpriteComponent.prototype.update = function update (){
@@ -535,7 +535,63 @@ var PictureComponent = (function (SpriteComponent$$1) {
     PictureComponent.prototype = Object.create( SpriteComponent$$1 && SpriteComponent$$1.prototype );
     PictureComponent.prototype.constructor = PictureComponent;
 
-    var prototypeAccessors = { picture: {} };
+    var prototypeAccessors = { frameX: {},frameY: {},frameWidth: {},frameWidthP: {},frameHeight: {},frameHeightP: {},picture: {} };
+
+    prototypeAccessors.frameX.get = function ()        {
+        return this._frame.x;
+    };
+    prototypeAccessors.frameX.set = function (value        ){
+        this._frameDirty = true;
+        this._frame.x = value;
+    };
+
+    prototypeAccessors.frameY.get = function ()        {
+        return this._frame.y;
+    };
+    prototypeAccessors.frameY.set = function (value        ){
+        this._frameDirty = true;
+        this._frame.y = value;
+    };
+
+    prototypeAccessors.frameWidth.get = function ()        {
+        return this._frame.width;
+    };
+    prototypeAccessors.frameWidth.set = function (value        ){
+        this._frameDirty = true;
+        this._frame.width = value;
+        this._frameWidthP = null;
+    };
+
+    prototypeAccessors.frameWidthP.get = function ()        {
+        if(this.bitmap && this.bitmap.width){
+            return this._frame.width / this.bitmap.width * 100;
+        }
+        return 0;
+    };
+    prototypeAccessors.frameWidthP.set = function (value        ){
+        this._frameDirty = true;
+        this._frameWidthP = value / 100;
+    };
+
+    prototypeAccessors.frameHeight.get = function ()        {
+        return this._frame.height;
+    };
+    prototypeAccessors.frameHeight.set = function (value        ){
+        this._frameDirty = true;
+        this._frame.height = value;
+        this._frameHeightP = null;
+    };
+
+    prototypeAccessors.frameHeightP.get = function ()        {
+        if(this.bitmap && this.bitmap.height){
+            return this._frame.height / this.bitmap.height * 100;
+        }
+        return 0;
+    };
+    prototypeAccessors.frameHeightP.set = function (value        ){
+        this._frameDirty = true;
+        this._frameHeightP = value / 100;
+    };
 
     prototypeAccessors.picture.get = function ()        {
         return this._picture;
@@ -545,6 +601,22 @@ var PictureComponent = (function (SpriteComponent$$1) {
             this.markContentDirty();
             this._picture = value;
         }
+    };
+
+    PictureComponent.prototype.update = function update (){
+        if(this._frameDirty && this.bitmap && this.bitmap.isReady()){
+            this._frameDirty = false;
+
+            if(this._frameWidthP){
+                this._frame.width = this.bitmap.width * this._frameWidthP;
+            }
+            if(this._frameHeightP){
+                this._frame.height = this.bitmap.height * this._frameHeightP;
+            }
+            this._refresh();
+        }
+
+        SpriteComponent$$1.prototype.update.call(this);
     };
 
     PictureComponent.prototype._refreshContent = function _refreshContent (){
@@ -746,7 +818,14 @@ ComponentManager.prototype._convertNumbers = function _convertNumbers (params   
     var result = {};
     if(!removeDefault) { fillDefaultParams(result); }
     Object.keys(params).forEach(function (key){
-        result[key] = this$1._convertUnit(params[key]);
+        var ref = this$1._convertUnit(params[key]);
+            var value = ref.value;
+            var unit = ref.unit;
+        if(unit === '%'){
+            result[key+'P'] = value;
+        }else{
+            result[key] = value;
+        }
     });
 
     return result;
@@ -765,6 +844,10 @@ ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
         var unit = ref.unit;
         var raw = ref.raw;
 
+    return {value: this._calcUnit(value, unit, raw), unit: unit};
+};
+
+ComponentManager.prototype._calcUnit = function _calcUnit (value    , unit    , raw    ){
     switch(unit){
         case 'column':
             return Graphics.width / parameters$1.column * value;
@@ -778,8 +861,6 @@ ComponentManager.prototype._convertUnit = function _convertUnit (rawValue    ){
             return Graphics.boxWidth * (value / 100);
         case 'bh':
             return Graphics.boxHeight * (value / 100);
-        case '%':
-            return value / 100;
         default:
             return isNaN(value)? raw: value;
     }
