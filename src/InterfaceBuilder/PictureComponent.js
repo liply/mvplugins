@@ -74,6 +74,8 @@ export default class PictureComponent extends SpriteComponent{
     }
 
     update(){
+        super.update();
+
         if(this._frameDirty && this.bitmap && this.bitmap.isReady()){
             this._frameDirty = false;
 
@@ -85,8 +87,6 @@ export default class PictureComponent extends SpriteComponent{
             }
             this._refresh();
         }
-
-        super.update();
     }
 
     _refreshContent(){
