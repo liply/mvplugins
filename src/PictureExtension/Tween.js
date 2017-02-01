@@ -45,46 +45,57 @@ export default class Tween {
     }
 
     add(id, commands){
-        this._commands = commands.concat(commands);
+        this._commands = this._commands.concat(commands);
         this._id = id;
     }
 
-    isEnd(){
-        return commands.length === 0;
+    getId(){
+        return this._id;
     }
 
-    update(lookupFunction){
+    isEnd(){
+        return this._commands.length === 0;
+    }
+
+    finish(){
+        while(this._commands.length > 0) update(true);
+    }
+
+    update(finishFlag){
         if(this._commands.length === 0) return false;
         let commands = this._commands;
 
-        const target = lookupFunction(this._id);
+        const target = $gameScreen.picture(this._id);
 
         const type = '_' + commands[0];
-        const time = +commands[1];
-        const fn = commands[2];
-        const to = +commands[3];
+        const to = +commands[1];
+        const time = +commands[2];
+        const fn = commands[3];
 
-        this._t += (1 / time);
         switch(type){
             case '_delay':
-                if(this._t >= 1){
+                this._t += (1 / to);
+                if(this._t >= 1 || finishFlag){
                     this._commands = commands.slice(2);
+                    this._t = 0;
+                    this._from = null;
                 }
                 break;
 
             default:
+                this._t += (1 / time);
                 if(this._from === null){
                     this._from = target[type];
                 }
 
-                if(this._t >= 1){
+                if(this._t >= 1 || finishFlag){
                     target[type] = to;
 
                     this._commands = commands.slice(4);
                     this._t = 0;
                     this._from = null;
                 }else{
-                    let a = EasingFunctions[fn](t);
+                    let a = EasingFunctions[fn](this._t);
                     target[type] = this._from * (1-a) + to * a;
                 }
                 break;

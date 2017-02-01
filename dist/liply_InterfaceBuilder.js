@@ -535,7 +535,7 @@ var PictureComponent = (function (SpriteComponent$$1) {
     PictureComponent.prototype = Object.create( SpriteComponent$$1 && SpriteComponent$$1.prototype );
     PictureComponent.prototype.constructor = PictureComponent;
 
-    var prototypeAccessors = { frameX: {},frameY: {},frameWidth: {},frameWidthP: {},frameHeight: {},frameHeightP: {},picture: {} };
+    var prototypeAccessors = { frameX: {},frameXP: {},frameY: {},frameYP: {},frameWidth: {},frameWidthP: {},frameHeight: {},frameHeightP: {},picture: {} };
 
     prototypeAccessors.frameX.get = function ()        {
         return this._frame.x;
@@ -543,6 +543,18 @@ var PictureComponent = (function (SpriteComponent$$1) {
     prototypeAccessors.frameX.set = function (value        ){
         this._frameDirty = true;
         this._frame.x = value;
+        this._frameXP = null;
+    };
+
+    prototypeAccessors.frameXP.get = function ()        {
+        if(this.bitmap && this.bitmap.width){
+            return this._frame.x / this.bitmap.width * 100;
+        }
+        return 0;
+    };
+    prototypeAccessors.frameXP.set = function (value        ){
+        this._frameDirty = true;
+        this._frameXP = value / 100;
     };
 
     prototypeAccessors.frameY.get = function ()        {
@@ -551,6 +563,18 @@ var PictureComponent = (function (SpriteComponent$$1) {
     prototypeAccessors.frameY.set = function (value        ){
         this._frameDirty = true;
         this._frame.y = value;
+        this._frameYP = null;
+    };
+
+    prototypeAccessors.frameYP.get = function ()        {
+        if(this.bitmap && this.bitmap.height){
+            return this._frame.y / this.bitmap.height * 100;
+        }
+        return 0;
+    };
+    prototypeAccessors.frameYP.set = function (value        ){
+        this._frameDirty = true;
+        this._frameYP = value / 100;
     };
 
     prototypeAccessors.frameWidth.get = function ()        {
@@ -609,10 +633,17 @@ var PictureComponent = (function (SpriteComponent$$1) {
         if(this._frameDirty && this.bitmap && this.bitmap.isReady()){
             this._frameDirty = false;
 
-            if(this._frameWidthP){
+            if(this._frameXP != null){
+                this._frame.x = this.bitmap.width * this._frameXP;
+            }
+            if(this._frameYP != null){
+                this._frame.y = this.bitmap.height * this._frameYP;
+            }
+
+            if(this._frameWidthP != null){
                 this._frame.width = this.bitmap.width * this._frameWidthP;
             }
-            if(this._frameHeightP){
+            if(this._frameHeightP != null){
                 this._frame.height = this.bitmap.height * this._frameHeightP;
             }
             this._refresh();
@@ -1156,11 +1187,6 @@ registerPluginCommands({
 
     removeRelease: function removeRelease(id){
         getComponentManager().removeHandler(id, 'release');
-    },
-
-    wait: function wait(frame){
-        this.wait(+frame);
-        this._breakBulkMode = true;
     }
 });
 
@@ -1268,49 +1294,6 @@ wrapPrototype(Scene_Map, 'update', function (old){ return function(){
 wrapPrototype(Scene_Map, 'createDisplayObjects', function (old){ return function(){
     old.call(this);
     this.addChild(this._componentManager.getStage());
-}; });
-
-wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
-    var this$1 = this;
-
-    var script = this.currentCommand().parameters[0] + '\n';
-    this._bulkMode = true;
-    this._breakBulkMode = false;
-    if(/^\/\/\s*@ib/.test(script)){
-        while (this.nextEventCode() === 655){
-            this$1._index++;
-            var params = this$1.currentCommand().parameters[0].split(' ');
-            var command = params.shift();
-            this$1.pluginCommand(command, params);
-
-            if(this$1._breakBulkMode) { return true; }
-        }
-
-        this._bulkMode = false;
-        return true;
-    }else{
-        return old.call(this);
-    }
-}; });
-
-wrapPrototype(Game_Interpreter, 'command655', function (old){ return function(){
-    var this$1 = this;
-
-    this._breakBulkMode = false;
-    if(this._bulkMode){
-        while (this.currentCommand().code === 655){
-            var params = this$1.currentCommand().parameters[0].split(' ');
-            var command = params.shift();
-            this$1.pluginCommand(command, params);
-
-            if(this$1._breakBulkMode) { return true; }
-            this$1._index++;
-        }
-
-        this._bulkMode = false;
-    }
-
-    return true;
 }; });
 
 SceneManager.getComponentManager = function(){

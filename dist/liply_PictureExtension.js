@@ -2,6 +2,35 @@
 'use strict';
 
 /*:
+ * @plugindesc ピクチャに対して便利な機能を追加します。
+ * @author liply
+ *
+ * @help
+ * 以下のプラグインコマンドを追加します。
+ *   tween add [ピクチャ番号] [パラメータ]
+ *   tween new [ピクチャ番号] [パラメータ]
+ * Tween（なめらか移動）の追加/新規作成を行います。
+ *
+ * パラメータの書式は以下です。
+ * [パラメータ名] [値] [時間] [補間関数]
+ * パラメータ名は、以下が有効です。
+ *   x, y, scaleX, scaleY, rotation
+ * 補間関数は、以下が有効です。
+ *   linear, ease[In/Out/InOut][Quad/Cubic/Quart/Quint]
+ * 時間の単位はフレーム数です。
+ *
+ * また、特殊なパラメータとしてdelayが用意されています。
+ * delayは時間を取り、その時間Tweenの実行を停止します。
+ *
+ *   tween finish
+ * Tweenの実行を早送りし、終了します。
+ *
+ *   gridMode [on/off] [ピクチャ番号]
+ * 指定のピクチャの座標がPX指定ではなく、グリッド配置に変更されます。
+ *
+ *   standMode [on/off] [ピクチャ番号]
+ * 指定のピクチャが立ち絵モードになります。立ち絵モードになると、原点が足元になります。
+ *
  * @param Grid Column
  * @default 12
  * @param Grid Row
@@ -54,46 +83,57 @@ var Tween = function Tween(){
 };
 
 Tween.prototype.add = function add (id, commands){
-    this._commands = commands.concat(commands);
+    this._commands = this._commands.concat(commands);
     this._id = id;
 };
 
-Tween.prototype.isEnd = function isEnd (){
-    return commands.length === 0;
+Tween.prototype.getId = function getId (){
+    return this._id;
 };
 
-Tween.prototype.update = function update (lookupFunction){
+Tween.prototype.isEnd = function isEnd (){
+    return this._commands.length === 0;
+};
+
+Tween.prototype.finish = function finish (){
+    while(this._commands.length > 0) { update(true); }
+};
+
+Tween.prototype.update = function update (finishFlag){
     if(this._commands.length === 0) { return false; }
     var commands = this._commands;
 
-    var target = lookupFunction(this._id);
+    var target = $gameScreen.picture(this._id);
 
     var type = '_' + commands[0];
-    var time = +commands[1];
-    var fn = commands[2];
-    var to = +commands[3];
+    var to = +commands[1];
+    var time = +commands[2];
+    var fn = commands[3];
 
-    this._t += (1 / time);
     switch(type){
         case '_delay':
-            if(this._t >= 1){
+            this._t += (1 / to);
+            if(this._t >= 1 || finishFlag){
                 this._commands = commands.slice(2);
+                this._t = 0;
+                this._from = null;
             }
             break;
 
         default:
+            this._t += (1 / time);
             if(this._from === null){
                 this._from = target[type];
             }
 
-            if(this._t >= 1){
+            if(this._t >= 1 || finishFlag){
                 target[type] = to;
 
                 this._commands = commands.slice(4);
                 this._t = 0;
                 this._from = null;
             }else{
-                var a = EasingFunctions[fn](t);
+                var a = EasingFunctions[fn](this._t);
                 target[type] = this._from * (1-a) + to * a;
             }
             break;
@@ -156,6 +196,36 @@ function wrapPrototype(klass, method, fn){
     klass.prototype[method] = newMethod;
 }
 
+
+
+function installArrayFind(){
+    // https://developer.mozilla.org/ja/docs/Web/JavaScript/Reference/Global_Objects/Array/find
+    if (!Array.prototype.find) {
+        Array.prototype.find = function(predicate) {
+            if (this === null) {
+                throw new TypeError('Array.prototype.find called on null or undefined');
+            }
+            if (typeof predicate !== 'function') {
+                throw new TypeError('predicate must be a function');
+            }
+            var list = Object(this);
+            var length = list.length >>> 0;
+            var thisArg = arguments[1];
+            var value;
+
+            for (var i = 0; i < length; i++) {
+                value = list[i];
+                if (predicate.call(thisArg, value, i, list)) {
+                    return value;
+                }
+            }
+            return undefined;
+        };
+    }
+}
+
+installArrayFind();
+
 var field = new PersistentField(p.PLUGIN_NAME);
 var tweens = [];
 
@@ -164,16 +234,41 @@ field.register('stand', []);
 
 
 registerPluginCommands({
-    tween: function tween(target){
-        var params = [], len = arguments.length - 1;
-        while ( len-- > 0 ) params[ len ] = arguments[ len + 1 ];
+    tween: function tween(cmd, target){
+        var params = [], len = arguments.length - 2;
+        while ( len-- > 0 ) params[ len ] = arguments[ len + 2 ];
 
-        var tween = new Tween();
-        tween.add(target, params);
-        tweens.push(tween);
+        var targetId = +target;
+        var tween = null;
+        switch(cmd.toLowerCase()){
+            case 'add':
+                tween = tweens
+                    .slice(0)
+                    .reverse()
+                    .find(function (tween){ return tween.getId() === targetId; });
+
+                if(!tween){
+                    tween = new Tween();
+                    tweens.push(tween);
+                }
+
+                tween.add(targetId, params);
+                break;
+
+            case 'new':
+                tween = new Tween();
+                tween.add(target, params);
+                tweens.push(tween);
+                break;
+
+            case 'finish':
+                tweens.forEach(function (tween){ return tween.finish(); });
+                break;
+        }
+
     },
 
-    grid: function grid(toggle, id){
+    gridMode: function gridMode(toggle, id){
         switch(toggle){
             case 'on':
                 field.grid[+id] = true;
@@ -185,7 +280,7 @@ registerPluginCommands({
         }
     },
 
-    stand: function stand(toggle, id){
+    standMode: function standMode(toggle, id){
         switch(toggle){
             case 'on':
                 field.stand[+id] = true;
@@ -198,11 +293,23 @@ registerPluginCommands({
     }
 });
 
+wrapPrototype(Game_Interpreter, 'updateWaitMode', function (old){ return function(){
+    if(this._waitMode === 'tween'){
+        if(tweens.length === 0){
+            this._waitMode = '';
+            return false;
+        }
+        return true;
+    }else{
+        return old.call(this);
+    }
+}; });
+
 wrapPrototype(Game_Screen, 'update',function (old){ return function(){
     old.call(this);
     
     tweens.forEach(function(tween){
-        tween.update(function (id){ return $gameScreen.picture(id); });
+        tween.update();
     });
 
     tweens = tweens.filter(function(tween){
