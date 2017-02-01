@@ -27,14 +27,12 @@ registerPluginCommands({
         }else{
             this.wait(+frame);
         }
-        this._breakBulkMode = true;
     }
 });
 
 wrapPrototype(Game_Interpreter, 'command355', old=>function(){
     let script = this.currentCommand().parameters[0] + '\n';
     this._bulkMode = true;
-    this._breakBulkMode = false;
     if(/^\/\/\s*@bulk/.test(script)){
         while (this.nextEventCode() === 655){
             this._index++;
@@ -44,7 +42,7 @@ wrapPrototype(Game_Interpreter, 'command355', old=>function(){
             let command = params.shift();
             this.pluginCommand(command, params);
 
-            if(this._breakBulkMode) return true;
+            if(this._waitMode !== '' || this._waitCount > 0) return true;
         }
 
         this._bulkMode = false;
@@ -55,7 +53,6 @@ wrapPrototype(Game_Interpreter, 'command355', old=>function(){
 });
 
 wrapPrototype(Game_Interpreter, 'command655', old=>function(){
-    this._breakBulkMode = false;
     if(this._bulkMode){
         while (this.currentCommand().code === 655){
             let params = this.currentCommand().parameters[0]
@@ -64,7 +61,7 @@ wrapPrototype(Game_Interpreter, 'command655', old=>function(){
             let command = params.shift();
             this.pluginCommand(command, params);
 
-            if(this._breakBulkMode) return true;
+            if(this._waitMode !== '' || this._waitCount > 0) return true;
             this._index++;
         }
 

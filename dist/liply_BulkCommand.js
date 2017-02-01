@@ -52,7 +52,6 @@ registerPluginCommands({
         }else{
             this.wait(+frame);
         }
-        this._breakBulkMode = true;
     }
 });
 
@@ -61,7 +60,6 @@ wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
 
     var script = this.currentCommand().parameters[0] + '\n';
     this._bulkMode = true;
-    this._breakBulkMode = false;
     if(/^\/\/\s*@bulk/.test(script)){
         while (this.nextEventCode() === 655){
             this$1._index++;
@@ -71,7 +69,7 @@ wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
             var command = params.shift();
             this$1.pluginCommand(command, params);
 
-            if(this$1._breakBulkMode) { return true; }
+            if(this$1._waitMode !== '' || this$1._waitCount > 0) { return true; }
         }
 
         this._bulkMode = false;
@@ -84,7 +82,6 @@ wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
 wrapPrototype(Game_Interpreter, 'command655', function (old){ return function(){
     var this$1 = this;
 
-    this._breakBulkMode = false;
     if(this._bulkMode){
         while (this.currentCommand().code === 655){
             var params = this$1.currentCommand().parameters[0]
@@ -93,7 +90,7 @@ wrapPrototype(Game_Interpreter, 'command655', function (old){ return function(){
             var command = params.shift();
             this$1.pluginCommand(command, params);
 
-            if(this$1._breakBulkMode) { return true; }
+            if(this$1._waitMode !== '' || this$1._waitCount > 0) { return true; }
             this$1._index++;
         }
 
