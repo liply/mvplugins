@@ -58,9 +58,9 @@ registerPluginCommands({
 wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
     var this$1 = this;
 
-    var script = this.currentCommand().parameters[0] + '\n';
+    var script = this.currentCommand().parameters[0];
     this._bulkMode = true;
-    if(/^\/\/\s*@bulk/.test(script)){
+    if(/^\/\/\s*[@＠]bulk/.test(script)){
         while (this.nextEventCode() === 655){
             this$1._index++;
             var params = this$1.currentCommand().parameters[0]
