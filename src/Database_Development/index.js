@@ -1,6 +1,5 @@
 let error;
 
-window.__liply_DatabaseDevelopment
 if(!location.search.slice(1).split('&').contains('test')){
     error = {
         name: 'liply_Database_Development',
