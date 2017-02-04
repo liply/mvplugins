@@ -3,6 +3,33 @@ export function contains(str, value){
     return str.indexOf(value) !== -1;
 }
 
+let installedFind = false;
+export function findEventByName(name){
+    if(!installedFind){
+        installArrayFind();
+        installedFind = true;
+    }
+    return $gameMap.events().find(ev=>(ev && (ev.event().name === name)));
+}
+
+export function findCommonEventIdByName(name){
+    if(!installedFind){
+        installArrayFind();
+        installedFind = true;
+    }
+
+    let id;
+    $dataCommonEvents.find((ev, idx)=>{
+        if(ev && (ev.name === name)){
+            id = idx;
+            return true;
+        }
+    });
+
+    return id;
+}
+
+
 function MiniWindow(){
     this.convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
     this.actorName = Window_Base.prototype.actorName;

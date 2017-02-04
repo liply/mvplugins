@@ -12,6 +12,8 @@
     "compile:count": "rollup -c rollup.count.js",
     "compile:evalv": "rollup -c rollup.evalv.js",
     "compile:bulk": "rollup -c rollup.bulk.js",
+    "compile:light": "rollup -c rollup.light.js",
+    "test:light": "rollup -c rollup.light.test.js -w",
     "test:builder": "rollup -c rollup.builder.test.js -w",
     "compile": "run-p compile:*",
     "copy": "cp-cli ./dist/ ./game/js/plugins/",
