@@ -171,11 +171,11 @@ LightProcessor.prototype._createOrGetFilter = function _createOrGetFilter (numPo
 };
 
 LightProcessor.prototype._lightX = function _lightX (sprite    ){
-    return sprite.x - $gameMap.displayX();
+    return sprite.x;
 };
 
 LightProcessor.prototype._lightY = function _lightY (sprite    ){
-    return Graphics.height - (-$gameMap.tileHeight()/2 + sprite.y - $gameMap.displayY());
+    return Graphics.height - (-$gameMap.tileHeight()/2 + sprite.y);
 };
 
 LightProcessor.prototype._flicker = function _flicker (l    ){

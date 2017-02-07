@@ -34,11 +34,11 @@ export default class LightProcessor{
     }
 
     _lightX(sprite: Sprite){
-        return sprite.x - $gameMap.displayX();
+        return sprite.x;
     }
 
     _lightY(sprite: Sprite){
-        return Graphics.height - (-$gameMap.tileHeight()/2 + sprite.y - $gameMap.displayY());
+        return Graphics.height - (-$gameMap.tileHeight()/2 + sprite.y);
     }
 
     _flicker(l: Object){
