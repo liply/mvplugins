@@ -20,7 +20,7 @@ export default class LightProcessor{
         this._filterCache = {};
     }
 
-    setAmbient(color){
+    setAmbient(color: Object){
         this._ambient = color;
     }
 

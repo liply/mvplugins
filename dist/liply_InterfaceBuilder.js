@@ -1190,11 +1190,11 @@ registerPluginCommands({
     }
 });
 
-function findEventByName(name){
+function findEventByName$1(name){
     return $gameMap.events().find(function (ev){ return (ev && (ev.event().name === name)); });
 }
 
-function findCommonEventIdByName(name){
+function findCommonEventIdByName$1(name){
     var id;
     $dataCommonEvents.find(function (ev, idx){
         if(ev && (ev.name === name)){
@@ -1246,12 +1246,12 @@ wrapPrototype(Scene_Map, 'terminate', function (old){ return function(){
 }; });
 
 function startEvent(name){
-    var event = findEventByName(name);
+    var event = findEventByName$1(name);
     if(event){
         event.start();
         return true;
     }else{
-        var id = findCommonEventIdByName(name);
+        var id = findCommonEventIdByName$1(name);
         if(id){
             $gameTemp.reserveCommonEvent(id);
             return true;
