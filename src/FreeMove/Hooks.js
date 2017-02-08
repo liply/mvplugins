@@ -3,6 +3,15 @@ import {getDirection4, real2grid, toXy} from './CharacterUtil.js';
 import {wrapPrototype} from '../lib/util.js'
 import {hitMap, hitMapEvents, restorePositionIfHit} from './hitMap.js'
 
+wrapPrototype(Game_Temp, 'destinationX', old=>function(){
+    return Math.round(old.call(this));
+});
+
+wrapPrototype(Game_Temp, 'destinationY', old=>function(){
+    return Math.round(old.call(this));
+});
+
+
 wrapPrototype(Game_CharacterBase, 'update', old=>function(){
     this._moving = this._beforeX !== this._realX || this._beforeY !== this._realY;
 
@@ -10,7 +19,6 @@ wrapPrototype(Game_CharacterBase, 'update', old=>function(){
     this._beforeY = this._realY;
     old.call(this);
     this.refreshBushDepth();
-
 });
 
 wrapPrototype(Game_CharacterBase, 'updateMove', old=>function(){
@@ -103,8 +111,8 @@ function analogMapY(map, y) {
 wrapPrototype(Sprite_Destination, 'updatePosition', old=>function(){
     const tileWidth = $gameMap.tileWidth();
     const tileHeight = $gameMap.tileHeight();
-    const x = $gameTemp.destinationX();
-    const y = $gameTemp.destinationY();
+    const x = $gameTemp._destinationX;
+    const y = $gameTemp._destinationY;
     this.x = $gameMap.adjustX(x) * tileWidth;
     this.y = $gameMap.adjustY(y) * tileHeight;
 
@@ -157,8 +165,8 @@ wrapPrototype(Game_Player, 'moveByInput', old=>function(){
             y += xy.y;
             $gameTemp.clearDestination();
         } else if ($gameTemp.isDestinationValid()){
-            x = $gameTemp.destinationX() - 0.5;
-            y = $gameTemp.destinationY() - 0.5;
+            x = $gameTemp._destinationX - 0.5;
+            y = $gameTemp._destinationY - 0.5;
         }
 
         const dx = x - this._realX;

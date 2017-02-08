@@ -208,6 +208,15 @@ function restorePositionIfHit(target, gameMap){
     });
 }
 
+wrapPrototype(Game_Temp, 'destinationX', function (old){ return function(){
+    return Math.round(old.call(this));
+}; });
+
+wrapPrototype(Game_Temp, 'destinationY', function (old){ return function(){
+    return Math.round(old.call(this));
+}; });
+
+
 wrapPrototype(Game_CharacterBase, 'update', function (old){ return function(){
     this._moving = this._beforeX !== this._realX || this._beforeY !== this._realY;
 
@@ -215,7 +224,6 @@ wrapPrototype(Game_CharacterBase, 'update', function (old){ return function(){
     this._beforeY = this._realY;
     old.call(this);
     this.refreshBushDepth();
-
 }; });
 
 wrapPrototype(Game_CharacterBase, 'updateMove', function (old){ return function(){
@@ -308,8 +316,8 @@ function analogMapY(map, y) {
 wrapPrototype(Sprite_Destination, 'updatePosition', function (old){ return function(){
     var tileWidth = $gameMap.tileWidth();
     var tileHeight = $gameMap.tileHeight();
-    var x = $gameTemp.destinationX();
-    var y = $gameTemp.destinationY();
+    var x = $gameTemp._destinationX;
+    var y = $gameTemp._destinationY;
     this.x = $gameMap.adjustX(x) * tileWidth;
     this.y = $gameMap.adjustY(y) * tileHeight;
 
@@ -362,8 +370,8 @@ wrapPrototype(Game_Player, 'moveByInput', function (old){ return function(){
             y += xy.y;
             $gameTemp.clearDestination();
         } else if ($gameTemp.isDestinationValid()){
-            x = $gameTemp.destinationX() - 0.5;
-            y = $gameTemp.destinationY() - 0.5;
+            x = $gameTemp._destinationX - 0.5;
+            y = $gameTemp._destinationY - 0.5;
         }
 
         var dx = x - this._realX;
