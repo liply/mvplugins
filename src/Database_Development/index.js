@@ -1,3 +1,11 @@
+/*:
+ * @help
+ * Databaseの開発用プラグインです。配布時にはOffにしてください。
+ * エラーが発生します。
+ *
+ */
+
+
 let error;
 
 if(!location.search.slice(1).split('&').contains('test')){

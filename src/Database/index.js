@@ -1,5 +1,22 @@
 import {wrapStatic, registerPluginCommands} from '../lib/util.js'
 
+/*:
+ * @author liply
+ * @help
+ * 以下のプラグインコマンドを導入します。
+ *
+ * sql
+ * sqlを発行します。
+ *
+ * cursor fetch [from] [to] [column] [offset]
+ * カーソルからデータを取り出します。
+ * columnで指定したデータが、[from-to)の変数に書き込まれます。
+ * オフセットを指定したい場合はoffsetを利用します。
+ *
+ * cursor count [id]
+ * 発行したsqlが持つデータの数をidで指定した変数に格納します。
+ *
+ */
 
 let C = [];
 
