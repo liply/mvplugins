@@ -1,5 +1,3 @@
-//@flow
-
 import parameters from './Parameters.js'
 
 import {TYPE_POINT, TYPE_CONE} from './LightFilter.js'
@@ -64,7 +62,7 @@ function setupEventLight(event, commands, flicker){
     const lightId = +commands[2];
     const targetEvent = isNaN(lightId)? event: $gameMap.event(lightId);
 
-    setSelfSwitchD($gameMap.mapId(), targetEvent.eventId(), true);
+//    setSelfSwitchD($gameMap.mapId(), targetEvent.eventId(), true);
     setupLight(targetEvent, radius, commands[1], flicker);
 }
 
@@ -95,6 +93,24 @@ wrapPrototype(Game_Event, 'initialize', old=>function(mapId, eventId){
     }
     if(event.meta['lanthanum']){
         setupEventConeLight(this, event.meta['cone'].split(' '), true);
+    }
+
+
+    let note = event.event().note.split(' ');
+    let command = note.shift().toLowerCase();
+    switch(command){
+        case 'light':
+            setupEventLight(this, note, false);
+            break;
+        case 'fire':
+            setupEventLight(this, note, true);
+            break;
+        case 'flashlight':
+            setupEventLight(this, note, false);
+            break;
+        case 'lanthanum':
+            setupEventLight(this, note, true);
+            break;
     }
 });
 
@@ -128,7 +144,7 @@ function processLight(thisEvent, args){
             break;
 
         case 'activate':
-            filed.enable = true;
+            field.enable = true;
             break;
     }
 }

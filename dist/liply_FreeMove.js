@@ -458,4 +458,6 @@ wrapPrototype(Game_Player, 'triggerAction', function (old){ return function(){
 
 }; });
 
+// Licensed under MIT
+
 }());

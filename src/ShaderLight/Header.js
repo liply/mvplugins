@@ -1,7 +1,10 @@
 /*:
  *
+ * @author liply
+ *
  * @help
  * ShaderLight Engine
+ * licensed under MIT
  *
  * @param Player Radius
  * @default 50

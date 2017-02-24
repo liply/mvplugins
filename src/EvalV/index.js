@@ -1,5 +1,5 @@
 //@flow
-
+// licensed under MIT
 import {registerPluginCommands} from '../lib/util.js'
 
 declare var $gameVariables;

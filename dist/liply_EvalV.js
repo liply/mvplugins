@@ -19,7 +19,7 @@ function registerPluginCommands(commands){
 }
 
 //     
-
+// licensed under MIT
 registerPluginCommands({
     evalV: function evalV(){
         var V = $gameVariables._data;

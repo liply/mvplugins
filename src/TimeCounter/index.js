@@ -1,4 +1,5 @@
 //@flow
+//Lisenced under MIT
 
 import {wrapPrototype, registerPluginCommands} from '../lib/util.js'
 import PersistentField from '../lib/PersistentField.js'

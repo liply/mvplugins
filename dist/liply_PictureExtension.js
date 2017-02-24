@@ -6,6 +6,8 @@
  * @author liply
  *
  * @help
+ * Licensed under MIT
+ *
  * 以下のプラグインコマンドを追加します。
  *   tween add [ピクチャ番号] [パラメータ]
  *   tween new [ピクチャ番号] [パラメータ]

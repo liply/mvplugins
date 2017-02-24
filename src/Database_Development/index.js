@@ -3,6 +3,8 @@
  * Databaseの開発用プラグインです。配布時にはOffにしてください。
  * エラーが発生します。
  *
+ * licensed under MIT
+ *
  */
 
 

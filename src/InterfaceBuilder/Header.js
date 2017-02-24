@@ -3,6 +3,7 @@
  * @author liply
  * @help
  * ユーザーインターフェイスをプラグインコマンドで作り出すプラグインです。
+ * Licensed under MIT
  *
  * 基本：
  * 最初にstageが作成されます。特に親がいない場合は、stageを指定してください。

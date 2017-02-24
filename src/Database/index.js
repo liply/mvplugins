@@ -4,6 +4,7 @@ import {wrapStatic, registerPluginCommands} from '../lib/util.js'
  * @author liply
  * @help
  * 以下のプラグインコマンドを導入します。
+ * licensed under MIT
  *
  * sql
  * sqlを発行します。

@@ -3,8 +3,11 @@
 
 /*:
  *
+ * @author liply
+ *
  * @help
  * ShaderLight Engine
+ * licensed under MIT
  *
  * @param Player Radius
  * @default 50
@@ -348,8 +351,6 @@ function installArrayFind(){
     }
 }
 
-//     
-
 var field = new PersistentField('liply_ShaderLight');
 field.register('enable', false);
 field.register('playerRadius', parameters$1.playerRadius);
@@ -364,10 +365,6 @@ function validateColor(color){
             g: parseInt(result[2], 16)/ 0xFF,
             b: parseInt(result[3], 16) / 0xFF
         } : {r:1, g:1, b:1};
-}
-
-function setSelfSwitchD(mapId, eventId, value){
-    $gameSelfSwitches.setValue([mapId, eventId, 'D'], value);
 }
 
 function setupLight(target, radius, colorString, flicker){
@@ -407,7 +404,7 @@ function setupEventLight(event, commands, flicker){
     var lightId = +commands[2];
     var targetEvent = isNaN(lightId)? event: $gameMap.event(lightId);
 
-    setSelfSwitchD($gameMap.mapId(), targetEvent.eventId(), true);
+//    setSelfSwitchD($gameMap.mapId(), targetEvent.eventId(), true);
     setupLight(targetEvent, radius, commands[1], flicker);
 }
 
@@ -438,6 +435,24 @@ wrapPrototype(Game_Event, 'initialize', function (old){ return function(mapId, e
     }
     if(event.meta['lanthanum']){
         setupEventConeLight(this, event.meta['cone'].split(' '), true);
+    }
+
+
+    var note = event.event().note.split(' ');
+    var command = note.shift().toLowerCase();
+    switch(command){
+        case 'light':
+            setupEventLight(this, note, false);
+            break;
+        case 'fire':
+            setupEventLight(this, note, true);
+            break;
+        case 'flashlight':
+            setupEventLight(this, note, false);
+            break;
+        case 'lanthanum':
+            setupEventLight(this, note, true);
+            break;
     }
 }; });
 
@@ -471,7 +486,7 @@ function processLight(thisEvent, args){
             break;
 
         case 'activate':
-            filed.enable = true;
+            field.enable = true;
             break;
     }
 }

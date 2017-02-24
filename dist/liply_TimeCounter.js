@@ -47,6 +47,7 @@ PersistentField.prototype.register = function register (name, defaultValue){
 };
 
 //     
+//Lisenced under MIT
 
 var field = new PersistentField('liply_TimeCounter');
 field.register('count', 0);
