@@ -23,6 +23,7 @@
  * opacity
  * picture (ピクチャーのみ）
  * text（ラベルのみ）
+ * background（ウインドウのみ）
  *
  * 単位は以下の指定が可能です。
  * column
@@ -53,7 +54,7 @@
  * container: 他の親になる機能のみをもった、軽量のUIコンポーネントです。
  *
  *
- * draw ID ピクチャ名/テキスト パラメータ名 パラメータ値 ...
+ * draw picture/text ID ピクチャ名/テキスト パラメータ名 パラメータ値 ...
  * windowの内部にピクチャかテキストを描画します。
  *
  * clear ID
