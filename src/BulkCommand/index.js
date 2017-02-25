@@ -40,7 +40,7 @@ wrapPrototype(Game_Interpreter, 'command355', old=>function(){
                 .split(' ')
                 .filter(p=>p !== '');
             let command = params.shift();
-            this.pluginCommand(command, params);
+            if(command) this.pluginCommand(command, params);
 
             if(this._waitMode !== '' || this._waitCount > 0) return true;
         }
@@ -59,7 +59,7 @@ wrapPrototype(Game_Interpreter, 'command655', old=>function(){
                 .split(' ')
                 .filter(p=>p !== '');
             let command = params.shift();
-            this.pluginCommand(command, params);
+            if(command) this.pluginCommand(command, params);
 
             if(this._waitMode !== '' || this._waitCount > 0) return true;
             this._index++;

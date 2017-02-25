@@ -67,7 +67,7 @@ wrapPrototype(Game_Interpreter, 'command355', function (old){ return function(){
                 .split(' ')
                 .filter(function (p){ return p !== ''; });
             var command = params.shift();
-            this$1.pluginCommand(command, params);
+            if(command) { this$1.pluginCommand(command, params); }
 
             if(this$1._waitMode !== '' || this$1._waitCount > 0) { return true; }
         }
@@ -88,7 +88,7 @@ wrapPrototype(Game_Interpreter, 'command655', function (old){ return function(){
                 .split(' ')
                 .filter(function (p){ return p !== ''; });
             var command = params.shift();
-            this$1.pluginCommand(command, params);
+            if(command) { this$1.pluginCommand(command, params); }
 
             if(this$1._waitMode !== '' || this$1._waitCount > 0) { return true; }
             this$1._index++;
