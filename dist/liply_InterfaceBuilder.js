@@ -21,8 +21,6 @@
  * width
  * height
  * opacity
- * picture (ピクチャーのみ）
- * text（ラベルのみ）
  * background（ウインドウのみ）
  *
  * 単位は以下の指定が可能です。
@@ -43,8 +41,8 @@
  * 以下のプラグインコマンドが導入されます。
  *
  * window ID 親ID パラメータ名 パラメータ値 ...
- * label ID 親ID パラメータ名 パラメータ値 ...
- * picture ID 親ID パラメータ名 パラメータ値 ...
+ * label ID 親ID テキスト パラメータ名 パラメータ値 ...
+ * picture ID 親ID ピクチャ名 パラメータ名 パラメータ値 ...
  * container ID 親ID パラメータ名 パラメータ値 ...
  *
  * 各種UIコンポーネントを作成します。
