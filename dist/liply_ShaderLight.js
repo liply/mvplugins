@@ -291,9 +291,6 @@ function findEventByName(name){
 
 
 
-
-
-
 function registerPluginCommands(commands){
     var lowerCaseCommands = {};
     Object.keys(commands).forEach(function (name){

@@ -29,19 +29,6 @@ export function findCommonEventIdByName(name){
     return id;
 }
 
-
-function MiniWindow(){
-    this.convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
-    this.actorName = Window_Base.prototype.actorName;
-    this.partyMemberName = Window_Base.prototype.partyMemberName;
-}
-
-let miniWindow = new MiniWindow();
-
-export function convertEscapeCharacters(text){
-    return miniWindow.convertEscapeCharacters(text);
-}
-
 export function arr2obj(params){
     let result = {};
     for(let n = 0; n < params.length; n+=2){

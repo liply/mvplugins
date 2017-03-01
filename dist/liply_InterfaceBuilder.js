@@ -93,18 +93,6 @@
  *
  */
 
-function MiniWindow(){
-    this.convertEscapeCharacters = Window_Base.prototype.convertEscapeCharacters;
-    this.actorName = Window_Base.prototype.actorName;
-    this.partyMemberName = Window_Base.prototype.partyMemberName;
-}
-
-var miniWindow = new MiniWindow();
-
-function convertEscapeCharacters(text){
-    return miniWindow.convertEscapeCharacters(text);
-}
-
 function arr2obj(params){
     var result = {};
     for(var n = 0; n < params.length; n+=2){
@@ -854,6 +842,27 @@ var parameters$1 = {
 
                                                             
 
+var MiniWindow = (function (Window_Base) {
+    function MiniWindow(){
+        Window_Base.call(this, 0, 0, 1, 1);
+    }
+
+    if ( Window_Base ) MiniWindow.__proto__ = Window_Base;
+    MiniWindow.prototype = Object.create( Window_Base && Window_Base.prototype );
+    MiniWindow.prototype.constructor = MiniWindow;
+
+    return MiniWindow;
+}(Window_Base));
+
+var miniWindow;
+
+function convertEscapeCharacters(text        )        {
+    if(!miniWindow){
+        miniWindow = new MiniWindow();
+    }
+    return miniWindow.convertEscapeCharacters(text);
+}
+
 var ComponentManager = function ComponentManager(){
     this._stage = new SpriteComponent();
     this.clear();
@@ -861,6 +870,41 @@ var ComponentManager = function ComponentManager(){
 
 ComponentManager.prototype.getStage = function getStage (){
     return this._stage;
+};
+
+ComponentManager.prototype.hasParent = function hasParent (t , id    ){
+        var this$1 = this;
+
+    if(t.id === id) { return true; }
+
+    while(t && t.parentId){
+        if(t.id === id){ return true; }
+        t = this$1._types.find(function (p){ return (p.id === t.parentId); });
+    }
+
+    return false;
+};
+
+ComponentManager.prototype.close = function close (id    ){
+        var this$1 = this;
+
+    if(id === 'stage'){
+        this.clear();
+    }else{
+        var remove = this._types.filter(function (t){ return this$1.hasParent(t,id); });
+
+        remove.forEach(function (type){
+            var key = type.id;
+            if(this$1._components[key]){
+                var c = this$1._components[key];
+                c.parent.removeChild(c);
+
+                delete this$1._components[key];
+            }
+        });
+
+        this._types = this._types.filter(function (t){ return !this$1.hasParent(t,id); });
+    }
 };
 
 ComponentManager.prototype.add = function add (component ){

@@ -9,7 +9,6 @@ import PictureComponent from './PictureComponent.js'
 import {fillDefaultParams} from './SpriteUtil.js'
 
 import Animator from './Animator.js'
-import {convertEscapeCharacters} from '../lib/util.js'
 import parameters from './Parameters.js'
 
 type Component =  WindowComponent | SpriteComponent | LabelComponent;
@@ -17,6 +16,22 @@ type Handlers = { [key: string]: string }
 
 declare var Graphics;
 declare var Input;
+declare var Window_Base;
+
+class MiniWindow extends Window_Base{
+    constructor(){
+        super(0, 0, 1, 1);
+    }
+}
+
+let miniWindow;
+
+function convertEscapeCharacters(text: string): string{
+    if(!miniWindow){
+        miniWindow = new MiniWindow();
+    }
+    return miniWindow.convertEscapeCharacters(text);
+}
 
 export default class ComponentManager{
     _types: Array<Any>;
@@ -41,6 +56,37 @@ export default class ComponentManager{
 
     getStage(){
         return this._stage;
+    }
+
+    hasParent(t: Any, id: string){
+        if(t.id === id) return true;
+
+        while(t && t.parentId){
+            if(t.id === id)return true;
+            t = this._types.find(p=>(p.id === t.parentId));
+        }
+
+        return false;
+    }
+
+    close(id: string){
+        if(id === 'stage'){
+            this.clear();
+        }else{
+            let remove = this._types.filter((t:Any)=>this.hasParent(t,id));
+
+            remove.forEach(type=>{
+                const key = type.id;
+                if(this._components[key]){
+                    const c = this._components[key];
+                    c.parent.removeChild(c);
+
+                    delete this._components[key];
+                }
+            });
+
+            this._types = this._types.filter((t:Any)=>!this.hasParent(t,id));
+        }
     }
 
     add(component: Any){
