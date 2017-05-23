@@ -11,6 +11,7 @@
     "compile:builder": "rollup -c rollup.builder.js",
     "compile:count": "rollup -c rollup.count.js",
     "compile:evalv": "rollup -c rollup.evalv.js",
+    "compile:timer": "rollup -c rollup.timer.js",
     "compile:bulk": "rollup -c rollup.bulk.js",
     "compile:move": "rollup -c rollup.move.js",
     "test:move": "rollup -c rollup.move.test.js -w",
