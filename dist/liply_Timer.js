@@ -56,7 +56,6 @@ PersistentField.prototype.register = function register (name, defaultValue){
  * 例として、20分のタイマーを作成し、70分ゲームを閉じ、起動した場合、
  * スイッチは3回、ONになります。
  *
- *
  * CreateTimer スイッチID 間隔（分）
  * DestroyTimer スイッチID
  *
@@ -69,6 +68,9 @@ PersistentField.prototype.register = function register (name, defaultValue){
  *
  * DestroyTimer 10
  * スイッチ10番をONにしようとしているタイマーを破棄します。
+ *
+ * v1.1(2017/05/23)
+ * Eventが走ってる最中はTickしないように修正
  *
  */
 
@@ -114,15 +116,17 @@ function tickSelfTimer(current, ev, timer){
 wrapPrototype(Scene_Map, 'update', function (old){ return function(){
     var current = Date.now();
 
-    Object.keys(field.timers).forEach(function (key){
-        var timer = field.timers[key];
+    if(!$gameMap.isEventRunning()){
+        Object.keys(field.timers).forEach(function (key){
+            var timer = field.timers[key];
 
-        tickTimer(current, timer);
-    });
+            tickTimer(current, timer);
+        });
 
-    $gameMap.events().filter(function (ev){ return ev.timers; }).forEach(function (ev){
-        tickSelfTimers(ev);
-    });
+        $gameMap.events().filter(function (ev){ return ev.timers; }).forEach(function (ev){
+            tickSelfTimers(ev);
+        });
+    }
 
     old.apply(this, arguments);
 }; });
